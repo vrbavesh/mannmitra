@@ -34,7 +34,7 @@ Server logs confirmed both request-route 200s and the verify 200; no `[otp]` or 
 
 ## In flight
 
-Nothing. Step 6 is closed.
+Step 6 is closed. The retrospective Wave A audit is complete with a **fix-first** verdict; its audit gate remains open. See [Wave A Ponytail audit](plans/audits/wave-a-ponytail-audit.md) for seven findings: three must fix (mixed-owner database references, client-forgeable lifecycle state, input contrast) and four should fix (stale browser smoke, local Auth configuration drift, misleading rate-limit fallback instructions, shared motion rules). No application or hosted changes were made by the audit. Resolve the must-fix findings and triage the rest before declaring Wave A audit-passed.
 
 ## Live verification evidence (Step 6)
 
