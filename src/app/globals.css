@@ -1,26 +1,118 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * MannMitra design tokens — Forest direction (blueprint §0.2).
+ * One palette (evergreen/bone/amber), one accent (amber), light-locked theme.
+ * Tailwind v4: colors declared in @theme generate utilities (bg-bone-100, text-evergreen-800...).
+ * Semantic aliases map 1:1 to utility names (bg-primary, border-border, text-muted-foreground...).
+ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@theme {
+  /* Evergreen (primary) scale — deep forest greens */
+  --color-evergreen-50: #f0f7f2;
+  --color-evergreen-100: #dcece1;
+  --color-evergreen-200: #bad8c5;
+  --color-evergreen-300: #8dbda3;
+  --color-evergreen-400: #5c9c7c;
+  --color-evergreen-500: #3d8162;
+  --color-evergreen-600: #2c674d;
+  --color-evergreen-700: #1f523d;
+  --color-evergreen-800: #14532d;
+  --color-evergreen-900: #0e3d22;
+  --color-evergreen-950: #082616;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Bone (background) scale — warm off-whites */
+  --color-bone-50: #fdfdfb;
+  --color-bone-100: #f9f8f3;
+  --color-bone-200: #f2f0e8;
+  --color-bone-300: #e7e4d8;
+  --color-bone-400: #d5d1c2;
+  --color-bone-500: #bcb7a5;
+
+  /* Amber (the ONE accent — locked app-wide) */
+  --color-amber-100: #fdf0d5;
+  --color-amber-200: #f9dfab;
+  --color-amber-300: #f3c673;
+  --color-amber-400: #edac4a;
+  --color-amber-500: #e08f21;
+  --color-amber-600: #c47416;
+  --color-amber-700: #9c5713;
+
+  /* Neutrals (slate-warm, body text and borders) */
+  --color-neutral-50: #f8f8f6;
+  --color-neutral-100: #efefec;
+  --color-neutral-200: #e0e0db;
+  --color-neutral-300: #c7c7c0;
+  --color-neutral-400: #a0a099;
+  --color-neutral-500: #7d7d76;
+  --color-neutral-600: #5f5f59;
+  --color-neutral-700: #4a4a45;
+  --color-neutral-800: #333330;
+  --color-neutral-900: #1f1f1d;
+
+  /* Semantic roles (utility aliases) */
+  --color-background: #f9f8f3; /* bone-100 */
+  --color-surface: #fdfdfb; /* bone-50 */
+  --color-foreground: #1f1f1d; /* neutral-900 */
+  --color-primary: #14532d; /* evergreen-800 */
+  --color-primary-foreground: #fdfdfb; /* bone-50 */
+  --color-accent: #e08f21; /* amber-500 */
+  --color-accent-foreground: #1f1f1d;
+  --color-border: #d5d1c2; /* bone-400 */
+  --color-muted: #f2f0e8; /* bone-200 */
+  --color-muted-foreground: #5f5f59; /* neutral-600 */
+  --color-danger-soft: #9c5713; /* amber-700 — calm warning, never a red alarm */
+
+  /* Radius system: soft cards, pill controls (one system — documented) */
+  --radius-card: 16px;
+  --radius-control: 999px;
+
+  /* Type scale (Plus Jakarta Sans display+body, Geist Mono numerics) */
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --shadow-card: 0 1px 2px rgb(14 61 34 / 0.04), 0 8px 24px rgb(14 61 34 / 0.06);
+  --shadow-raised: 0 2px 4px rgb(14 61 34 / 0.06), 0 16px 40px rgb(14 61 34 / 0.1);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Keyframes: opacity/transform only (motion budget) */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Reduced-motion global fallback: kill all animation + transition, keep instant state changes */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
