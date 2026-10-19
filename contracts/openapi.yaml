@@ -1,0 +1,627 @@
+# MannMitra API contract (v1)
+#
+# ONE authoritative artifact for all custom server routes (contract-first rule:
+# change this file BEFORE any implementation, then regenerate types).
+#
+# Most reads/writes go through the Supabase client under RLS. Custom routes
+# exist only where the spec requires server-side power. Deliberate omissions:
+#   - There is NO /api/auth/resolve-username endpoint (or any public
+#     username-lookup route). Username -> email resolution is an internal
+#     server function inside POST /api/auth/signin, using the service key.
+#     Account-enumeration surface stays at zero.
+#   - There is no generic file-download route; drawings are served from the
+#     private storage bucket under RLS folder policies.
+openapi: 3.1.0
+info:
+  title: MannMitra API
+  version: 1.0.0
+  description: >
+    Server routes for MannMitra. Auth uses Supabase session cookies; every
+    route listed here must verify identity itself (the stage-guard proxy
+    excludes /api). Errors share one envelope. Rate-limit responses carry
+    Retry-After and X-RateLimit-* headers.
+servers:
+  - url: https://mannmitra.vercel.app
+    description: Production (Vercel)
+tags:
+  - name: auth
+  - name: screening
+paths:
+  /api/auth/signin:
+    post:
+      tags: [auth]
+      operationId: signIn
+      summary: Sign in with email or username plus password
+      description: >
+        Accepts an email or a username in `identifier`. When the value has no
+        "@", the server resolves the username to an email internally (service
+        key, server-only) and continues; this resolution is not exposed as an
+        endpoint. Unknown account and wrong password return the SAME
+        401 response (spec 3.3). An email that exists but is unverified
+        returns 403 email_unverified so the client can send the user to
+        /signup/verify. Rate limit: 10 attempts per 10 minutes per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SigninRequest"
+      responses:
+        "200":
+          description: Signed in; session cookie set; client routes by stage.
+          headers:
+            Set-Cookie:
+              description: Supabase auth session cookies (HttpOnly, Secure, SameSite=Lax).
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SigninResponse"
+              example:
+                stage: active
+        "401":
+          $ref: "#/components/responses/InvalidCredentials"
+        "403":
+          $ref: "#/components/responses/EmailUnverified"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/screening/sessions:
+    post:
+      tags: [screening]
+      operationId: submitScreening
+      summary: Submit screening answers; server computes scores and severity
+      description: >
+        All 18 MHI-18 items (raw 1-6) plus the mandatory safety question
+        (0-3). The server scores, bands severity, writes the session and
+        answers with the service role (screening tables reject client writes
+        by RLS), records risk_events when the risk gate fires, and returns
+        the result with the stage the client should show. `scoring_version`
+        stamps which scoring key produced this row. Retake rule (spec 6):
+        a new pre-test inside 14 days of the last one returns 409.
+        Rate limit applies per user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScreeningSubmitRequest"
+      responses:
+        "201":
+          description: Screening scored and stored.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScreeningSubmitResponse"
+              example:
+                session_id: 6f0a4b2e-8a3c-4c2b-9c33-1d5f7a9e2b11
+                kind: pre
+                scoring_version: 1
+                result:
+                  total_score: 61
+                  wellbeing_pct: 47.8
+                  distress_pct: 52.2
+                  areas:
+                    anxiety_pct: 55.0
+                    depression_pct: 48.9
+                    negmood_pct: 53.3
+                  severity: moderate
+                risk:
+                  triggered: false
+                  reason: null
+                stage: awaiting_start
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/RetakeNotAllowed"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/auth/otp/request:
+    post:
+      tags: [auth]
+      operationId: requestOtp
+      summary: Send a one-time code by email
+      description: >
+        Sends a 6-digit code valid 2 minutes (values enforced in Supabase Auth
+        settings; spec 3.1). Resend cooldown 2 minutes; a resend cancels the
+        previous code. The response is byte-identical whether or not an
+        account exists (anti-enumeration): unknown email, password account,
+        and Google-only account all get 200 ok. Rate limits: 5 requests per
+        10 minutes per email+purpose and 10 per 10 minutes per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OtpRequestRequest"
+      responses:
+        "200":
+          description: Neutral confirmation; no account-existence information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OtpRequestResponse"
+              example:
+                ok: true
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/auth/otp/verify:
+    post:
+      tags: [auth]
+      operationId: verifyOtp
+      summary: Verify a 6-digit code and continue the flow
+      description: >
+        Verifies the code for the given purpose. Wrong code returns 401
+        invalid_code and counts an attempt; 5 wrong attempts for one code
+        return 429 too_many_attempts and the user must resend. An expired code
+        returns 410 code_expired and the client shows "Code expired" with a
+        Resend action. Purpose outcomes: signup -> verified, redirect
+        /onboarding; forgot_password -> verified with a temp session scoped to
+        the password-reset screen only; forgot_username -> verified with the
+        username revealed and the temp session signed out. For Google-only
+        accounts, forgot_password returns 409 google_only instead of a reset
+        session (revealed only AFTER a correct OTP; pre-OTP responses stay
+        identical). Rate limit: 10 per 10 minutes per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OtpVerifyRequest"
+      responses:
+        "200":
+          description: Code verified; flow continues.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OtpVerifyResponse"
+              examples:
+                signup:
+                  summary: Signup verified
+                  value:
+                    status: verified
+                    redirect: /onboarding
+                forgotUsername:
+                  summary: Username revealed, temp session ended
+                  value:
+                    status: verified
+                    redirect: /forgot-username
+                    revealed_username: river_otter
+        "401":
+          $ref: "#/components/responses/InvalidCode"
+        "409":
+          $ref: "#/components/responses/GoogleOnly"
+        "410":
+          $ref: "#/components/responses/CodeExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/TooManyAttempts"
+        "500":
+          $ref: "#/components/responses/InternalError"
+components:
+  schemas:
+    Stage:
+      type: string
+      description: Pipeline stage the client uses to route (mirrors src/lib/stage.ts).
+      enum:
+        - unverified
+        - needs_onboarding
+        - needs_pretest
+        - blocked
+        - awaiting_start
+        - active
+        - needs_posttest
+        - completed
+    Severity:
+      type: string
+      enum: [minimal, mild, moderate, severe]
+    Track:
+      type: string
+      enum: [depression, anxiety, negative_thinking]
+    Error:
+      type: object
+      description: Single error envelope for every non-2xx response.
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Stable machine code; clients switch on this, never on message text.
+              enum:
+                - validation_failed
+                - invalid_credentials
+                - email_unverified
+                - invalid_code
+                - code_expired
+                - too_many_attempts
+                - google_only
+                - retake_not_allowed
+                - rate_limited
+                - internal_error
+            message:
+              type: string
+              description: "Calm, human-readable, non-alarming copy (spec: no red-alarm auth errors)."
+            details:
+              type: array
+              description: Field-level problems; present only for validation_failed.
+              items:
+                $ref: "#/components/schemas/ValidationErrorDetail"
+    ValidationErrorDetail:
+      type: object
+      additionalProperties: false
+      required: [field, message]
+      properties:
+        field:
+          type: string
+          description: Dotted path of the offending field, e.g. "answers.4".
+        message:
+          type: string
+    SigninRequest:
+      type: object
+      additionalProperties: false
+      required: [identifier, password]
+      properties:
+        identifier:
+          type: string
+          minLength: 3
+          maxLength: 254
+          description: Email address or username (3-20 chars, ^[a-z0-9_]+$).
+        password:
+          type: string
+          minLength: 1
+          maxLength: 128
+    SigninResponse:
+      type: object
+      additionalProperties: false
+      required: [stage]
+      properties:
+        stage:
+          $ref: "#/components/schemas/Stage"
+    ScreeningSubmitRequest:
+      type: object
+      additionalProperties: false
+      required: [answers, safety_answer]
+      properties:
+        answers:
+          type: array
+          description: 18 MHI-18 raw answers in item order, each 1 (all of the time) to 6 (none of the time).
+          minItems: 18
+          maxItems: 18
+          items:
+            type: integer
+            minimum: 1
+            maximum: 6
+        safety_answer:
+          type: integer
+          minimum: 0
+          maximum: 3
+          description: PHQ-9 item 9 wording; any value above 0 triggers the risk gate immediately.
+    ScreeningSubmitResponse:
+      type: object
+      additionalProperties: false
+      required: [session_id, kind, scoring_version, result, risk, stage]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum: [pre, post]
+        scoring_version:
+          type: integer
+          const: 1
+          description: Scoring key version; bump when official MHI scoring replaces the provisional mapping.
+        result:
+          type: object
+          additionalProperties: false
+          required: [total_score, wellbeing_pct, distress_pct, areas, severity]
+          properties:
+            total_score:
+              type: integer
+              minimum: 18
+              maximum: 108
+            wellbeing_pct:
+              type: number
+              minimum: 0
+              maximum: 100
+            distress_pct:
+              type: number
+              minimum: 0
+              maximum: 100
+            areas:
+              type: object
+              additionalProperties: false
+              required: [anxiety_pct, depression_pct, negmood_pct]
+              properties:
+                anxiety_pct: { type: number, minimum: 0, maximum: 100 }
+                depression_pct: { type: number, minimum: 0, maximum: 100 }
+                negmood_pct: { type: number, minimum: 0, maximum: 100 }
+            severity:
+              $ref: "#/components/schemas/Severity"
+        risk:
+          type: object
+          additionalProperties: false
+          required: [triggered, reason]
+          properties:
+            triggered:
+              type: boolean
+            reason:
+              type: [string, "null"]
+              enum: [safety_answer, severe_score, null]
+        stage:
+          $ref: "#/components/schemas/Stage"
+    OtpRequestRequest:
+      type: object
+      additionalProperties: false
+      required: [email, purpose]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        purpose:
+          type: string
+          enum: [signup, forgot_password, forgot_username]
+    OtpRequestResponse:
+      type: object
+      additionalProperties: false
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+          const: true
+    OtpVerifyRequest:
+      type: object
+      additionalProperties: false
+      required: [email, code, purpose]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        code:
+          type: string
+          pattern: "^[0-9]{6}$"
+          description: 6 digits (spec 3.1); validity 2 minutes, server-enforced.
+        purpose:
+          type: string
+          enum: [signup, forgot_password, forgot_username]
+    OtpVerifyResponse:
+      type: object
+      additionalProperties: false
+      required: [status, redirect]
+      properties:
+        status:
+          type: string
+          const: verified
+        redirect:
+          type: string
+          description: Next screen for this purpose (/onboarding, /forgot-password/reset, or /forgot-username).
+        revealed_username:
+          type: string
+          description: Present only for purpose=forgot_username after a correct code.
+          pattern: "^[a-z0-9_]{3,20}$"
+    RetryAfterHeader:
+      name: Retry-After
+      in: header
+      required: true
+      description: Seconds until the next attempt is allowed.
+      schema: { type: integer, minimum: 0 }
+    RateLimitHeaders:
+      X-RateLimit-Limit:
+        description: Requests allowed in the current window.
+        schema: { type: integer }
+      X-RateLimit-Remaining:
+        description: Requests left in the current window.
+        schema: { type: integer }
+      X-RateLimit-Reset:
+        description: Unix seconds when the window resets.
+        schema: { type: integer }
+  responses:
+    ValidationFailed:
+      description: Request body failed validation; no state changed.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - properties:
+                  error:
+                    properties:
+                      code: { const: validation_failed }
+                    required: [code, details]
+          example:
+            error:
+              code: validation_failed
+              message: Some details need a quick check.
+              details:
+                - field: answers
+                  message: Expected exactly 18 answers.
+    InvalidCredentials:
+      description: >
+        Unknown account and wrong password are indistinguishable by design;
+        one uniform calm message for both (spec 3.3).
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - properties:
+                  error:
+                    properties:
+                      code: { const: invalid_credentials }
+                    required: [code]
+          example:
+            error:
+              code: invalid_credentials
+              message: We couldn't sign you in with those details, but don't worry, you can try again.
+    EmailUnverified:
+      description: Credentials were correct but the email is unconfirmed; client sends the user to /signup/verify.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - properties:
+                  error:
+                    properties:
+                      code: { const: email_unverified }
+                    required: [code]
+          example:
+            error:
+              code: email_unverified
+              message: Please confirm your email first; we can send the code again.
+    Unauthorized:
+      description: No valid session on this request.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - properties:
+                  error:
+                    properties:
+                      code: { const: invalid_credentials }
+                    required: [code]
+          example:
+            error:
+              code: invalid_credentials
+              message: Please sign in to continue.
+    InvalidCode:
+      description: Wrong code; an attempt was counted (5 per code).
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - properties:
+                  error:
+                    properties:
+                      code: { const: invalid_code }
+                    required: [code]
+          example:
+            error:
+              code: invalid_code
+              message: That code didn't match; check the digits and try again.
+    CodeExpired:
+      description: The code passed its 2-minute validity; client shows "Code expired" with Resend.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - properties:
+                  error:
+                    properties:
+                      code: { const: code_expired }
+                    required: [code]
+          example:
+            error:
+              code: code_expired
+              message: Code expired. You can ask for a new one.
+    TooManyAttempts:
+      description: 5 wrong attempts on one code; the user must resend.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - properties:
+                  error:
+                    properties:
+                      code: { const: too_many_attempts }
+                    required: [code]
+          example:
+            error:
+              code: too_many_attempts
+              message: For your safety, this code is done; request a fresh one when you're ready.
+    GoogleOnly:
+      description: Correct OTP on a Google-only account during forgot_password; no password reset is possible.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - properties:
+                  error:
+                    properties:
+                      code: { const: google_only }
+                    required: [code]
+          example:
+            error:
+              code: google_only
+              message: This account uses Google sign in.
+    RetakeNotAllowed:
+      description: A pre-test already exists within the last 14 days (spec 6).
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - properties:
+                  error:
+                    properties:
+                      code: { const: retake_not_allowed }
+                    required: [code]
+          example:
+            error:
+              code: retake_not_allowed
+              message: You recently completed the check-in; the next one unlocks in a few days.
+    RateLimited:
+      description: Rate limit exceeded; try again after Retry-After seconds.
+      headers:
+        Retry-After:
+          schema: { type: integer }
+        X-RateLimit-Limit:
+          schema: { type: integer }
+        X-RateLimit-Remaining:
+          schema: { type: integer }
+        X-RateLimit-Reset:
+          schema: { type: integer }
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - properties:
+                  error:
+                    properties:
+                      code: { const: rate_limited }
+                    required: [code]
+          example:
+            error:
+              code: rate_limited
+              message: Too many tries for now; give it a moment and come back.
+    InternalError:
+      description: Unexpected failure; no internal details are ever exposed.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - properties:
+                  error:
+                    properties:
+                      code: { const: internal_error }
+                    required: [code]
+          example:
+            error:
+              code: internal_error
+              message: Something didn't work on our side; please try again shortly.
