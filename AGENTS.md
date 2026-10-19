@@ -53,3 +53,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Progress log (append-only, one line per completed step; prune to last 10 past ~40 lines)
 
 - 2026-10-19  Step 1 — Scaffold, design system, test harness — fe56c6c
+- 2026-10-19  Step 2 — Schema, RLS, triggers, cleanup (code; verify:rls pending Codex apply) — 58e4ac6
