@@ -5,7 +5,7 @@
 
 ## Where we are
 
-**Wave B — Step 6 COMPLETE. Wave A retrospective audit remediation is complete: all seven findings resolved, hosted ownership/lifecycle migration applied, Ponytail diff review: Ship. `npm run verify` is green (lint, typecheck, build, 151 unit/contract tests, 3 production browser checks); the expanded hosted RLS suite passes 58 tests. No temporary users or fixtures remain. Next: Step 7 (Google sign-in and same-email enforcement).**
+**Wave B — Step 6 COMPLETE; Step 7 PAUSED at the user's request pending Google OAuth configuration. Wave A retrospective audit remediation is complete: all seven findings resolved, hosted ownership/lifecycle migration applied, Ponytail diff review: Ship. Last verification is green (lint, typecheck, build, 151 unit/contract tests, 3 production browser checks); hosted RLS passes 58 tests. Step 7 has research only, no implementation or hosted changes. Resume when the user confirms Google OAuth is configured.**
 
 ## Done
 
@@ -34,7 +34,14 @@ Server logs confirmed both request-route 200s and the verify 200; no `[otp]` or 
 
 ## In flight
 
-Nothing. Step 6 and the Wave A retrospective audit remediation are closed. See [Wave A Ponytail audit](plans/audits/wave-a-ponytail-audit.md) for the original findings, all seven resolutions, verification, and review. No new blueprint step has started.
+**Step 7 paused by user, 2026-10-19.** Working on `main`; implementation has not started. User will confirm after configuring Google OAuth. Step 6 and Wave A audit remediation remain closed ([audit evidence](plans/audits/wave-a-ponytail-audit.md)); last implementation commit is `1824e50`. No Step 7 tests have been added or run, and no hosted Auth settings or identities were changed.
+
+Research for resumption:
+
+- Read spec §3.4, blueprint Step 7, the installed Supabase SDK, Next.js route-handler guide, Supabase identity-linking docs, and upstream Auth identity/admin handlers. The same-email collision must be tested first.
+- The documented supported unlink method is `supabase.auth.unlinkIdentity(googleIdentity)` using a signed-in user's session with at least two identities. The installed SDK has no Admin unlink method, and Admin `createUser` does not accept identity objects. Correct the blueprint's Admin-unlink/identity-construction assumptions against the hosted version before implementing the real-project matrix; do not claim the proposed Google-disabled `signInWithIdToken` simulation works without proving it.
+- References: [identity linking](https://supabase.com/docs/guides/auth/auth-identity-linking), [unlinkIdentity](https://supabase.com/docs/reference/javascript/auth-unlinkidentity), [upstream identity handler](https://github.com/supabase/auth/blob/master/internal/api/identity.go), [Admin user parameters](https://github.com/supabase/auth/blob/master/internal/api/admin.go). Automatic same-email linking happens before the app callback; check the race and rejection cleanup, not just the UI message.
+- User requests a stop and saved handoff when either available usage window reaches 5% remaining. Last observed usage: 28% of the five-hour allowance remaining, 44% of the weekly allowance remaining. Recheck with the app usage tool while working; do not infer future percentages from elapsed time.
 
 ## Live verification evidence (Step 6)
 
@@ -53,7 +60,7 @@ Nothing. Step 6 and the Wave A retrospective audit remediation are closed. See [
 
 ## Next up
 
-**Step 7 — Google sign-in + same-email enforcement.** Start from the blueprint's Step 7 context brief. Test the same-email password-account collision first. The full Google-enabled real-project matrix remains Launch Gate G4; a clearly labeled Google-disabled real-project fallback may support the step commit if credentials are not yet available. No push without explicit user approval.
+**Wait for the user's Google OAuth configuration confirmation, then resume Step 7.** Verify the Google provider and redirect configuration, resolve the API assumptions recorded above, write the same-email collision tests first, then implement OAuth start/callback and stage routing. The real Google-enabled matrix remains Launch Gate G4; do not mark the step complete with an unproven fallback. Keep secrets out of chat and use only the approved real test inbox `nathankneegrow@gmail.com`. Commit verified completed work locally; no push without explicit user approval.
 
 ## Open blockers (operator, §6)
 
