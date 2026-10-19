@@ -5,7 +5,7 @@
 
 ## Where we are
 
-**Wave A — Step 2 code COMPLETE, verification PENDING (migrations not yet applied to the hosted project). Next: Codex applies migrations, then run `verify:rls`, then Step 3.**
+**Wave A — Step 2 COMPLETE. Five migrations are applied to hosted Supabase project `rgbqzsivegyijacmrfqi`; hosted RLS/Storage verification and the full repository gate are green. Next: Step 3.**
 
 ## Done
 
@@ -13,28 +13,20 @@
 |---|---|---|
 | (seed) spec + blueprint | `39c9e78` | — |
 | 1 Scaffold + design system + test harness | `fe56c6c` (last of 5 commits) | `npm run verify` green (lint, typegen+tsc, build, 10 unit tests); Playwright smoke green; live render checked in browser; `/ponytail-review`: 4 findings all fixed and re-verified |
-| 2 Schema + RLS + triggers + cleanup (code) | `58e4ac6` (last of 2 commits) | `npm run verify` green (lint, tsc, build, 10 unit tests); **`verify:rls` NOT YET RUN** — blocked on migrations being applied to the hosted project |
+| 2 Schema + RLS + triggers + cleanup | `9b436ab` (last of 4 commits) | Five hosted migrations applied; `npm run verify:rls` green (34 tests); `npm run verify` green (lint, typecheck, build, 10 unit tests); Supabase security advisor clean; temporary users/fixtures confirmed removed; `/ponytail-review`: ship |
 
 ## In flight
 
-Step 2 verification. Code is committed and locally green. Outstanding:
-
-1. **Codex applies the 4 migrations** in `supabase/migrations/` to the hosted project `rgbqzsivegyijacmrfqi` (operator chose this path; this machine has no Docker/psql and no Supabase CLI login). Order matters:
-   - `20261019000001_init_schema.sql` (tables, indexes, `handle_new_user()` trigger)
-   - `20261019000002_rls_policies.sql` (RLS + screening write-lock + task_templates read)
-   - `20261019000003_storage_drawings.sql` (private `drawings` bucket + per-user folder policy)
-   - `20261019000004_cron_cleanup.sql` (pg_cron: delete unverified `auth.users` > 24h)
-2. **Then run `npm run verify:rls`** — the suite (`tests/rls/rls.test.ts`) creates two throwaway users, seeds every table via service role, and proves: cross-user blindness on all 11 tables, anon reads nothing, authenticated reads task_templates, screening tables reject client writes (42501), explicit `entry_date` wins over the UTC default, and storage folder isolation.
-3. After it passes, commit any fixes + close Step 2 (HANDOFF rewrite + AGENTS.md log line).
+None. Step 3 has not started.
 
 ## Next up
 
-**Step 3 — Stage-guard middleware + route shells** (blueprint §2; strongest model tier; `/tdd`). After Step 2 verification closes.
+**Step 3 — Stage-guard middleware + route shells** (blueprint §2; strongest model tier; `/tdd`). Read the relevant Next.js 16 guides in `node_modules/next/dist/docs/` before implementation.
 
 ## Open blockers (operator, §6)
 
 - [x] Supabase project + keys — DONE (in `.env.local`, gitignored)
-- [ ] **Codex applies Step 2 migrations — BLOCKS Step 2 verification** (see In flight)
+- [x] Hosted Step 2 migrations + RLS/Storage verification — DONE (`verify:rls`: 34/34)
 - [ ] OTP settings + `{{ .Token }}` email template (spec'd in `docs/supabase-auth-settings.md`; needed by Step 5)
 - [ ] Google OAuth credentials (Step 7 / Gate G4)
 - [ ] Upstash Redis project or approval of Supabase-counter fallback (Step 4)
@@ -47,7 +39,9 @@ Step 2 verification. Code is committed and locally green. Outstanding:
 ## Key decisions
 
 - Direct mode: local git only until `gh`/remote exists; one branch per step, merge after gate.
-- **Migrations apply via Codex** (operator decision this session), not via Supabase CLI from this machine: no Docker (no `supabase start`), no `psql`, no CLI access token; the `sb_secret_` key cannot run DDL. `supabase init` still generated `supabase/config.toml` + the numbered migrations dir, so `db push` works whenever a token exists.
+- **Hosted migrations applied through the Supabase connector.** Supabase assigned the canonical remote versions, and local filenames were aligned to them so future CLI migration history stays consistent: `20261019042648` through `20261019043230`.
+- Current Supabase guidance uses explicit `to authenticated` policies and `(select auth.uid())`; deprecated `auth.role()` was removed before apply. A fifth migration revokes Data API execution of trigger-only `security definer` functions and indexes all foreign keys needed for ownership reads and cascading account deletion. Security advisor is clean; fresh-index “unused” notices are expected on the empty schema.
+- The hosted RLS suite now uses unique, self-cleaning task-template fixtures and treats revoked screening writes as the expected `42501` failure. Final cleanup check: zero `rls-*` auth users, profiles, or `__rls_test_*` templates.
 - **Spec truncation reconstructions** (spec .md line-wrapped mid-expression): `username_format` = `^[a-z0-9_]{3,20}$` (spec §4); `saved_items.kind` 4th value = `'strength'` (§4 "strengths list" + "set strength"); `risk_events.reason` = `'safety_answer','severe_score'` (§6 gate); programs.track 3rd = `'negative_thinking'`; severity = `'minimal','mild','moderate','severe'`. Flag for review if any later step disagrees.
 - `@testing-library/react` version in package.json corrected to installed `^16.3.3` (my hand-written `^16.4.0` didn't exist and broke `npm install`; also synced jsdom/prettier/playwright ranges to lockfile reality).
 - `npm install @supabase/supabase-js` added (Step 5+ need it; RLS suite uses it now).
