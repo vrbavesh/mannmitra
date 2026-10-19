@@ -57,6 +57,49 @@ describe("signup OTP routes", () => {
     resend.mockResolvedValue({ error: null });
   });
 
+  it("rate-limits a second request from the same email without touching Supabase", async () => {
+    checkRateLimit.mockResolvedValueOnce({
+      ok: false,
+      remaining: 0,
+      limit: 1,
+      retryAfterSec: 120,
+      resetUnixSec: 1_000_000,
+    });
+    const response = await requestCode(
+      post("/api/auth/otp/request", {
+        email: "river@example.com",
+        purpose: "signup",
+        password: "long-secret-123",
+      }),
+    );
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("120");
+    expect(signUp).not.toHaveBeenCalled();
+    expect(resend).not.toHaveBeenCalled();
+    expect(recordOtpIssue).not.toHaveBeenCalled();
+  });
+
+  it("rate-limits a burst from one IP even when each email is fresh", async () => {
+    checkRateLimit
+      .mockResolvedValueOnce(allowed())
+      .mockResolvedValueOnce({
+        ok: false,
+        remaining: 0,
+        limit: 5,
+        retryAfterSec: 60,
+        resetUnixSec: 1_000_000,
+      });
+    const response = await requestCode(
+      post("/api/auth/otp/request", {
+        email: "river@example.com",
+        purpose: "signup",
+        password: "long-secret-123",
+      }),
+    );
+    expect(response.status).toBe(429);
+    expect(signUp).not.toHaveBeenCalled();
+  });
+
   it("returns the same neutral body for new and existing email", async () => {
     const input = { email: "river@example.com", purpose: "signup", password: "long-secret-123" };
     const first = await requestCode(post("/api/auth/otp/request", input));
