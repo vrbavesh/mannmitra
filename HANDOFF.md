@@ -5,7 +5,7 @@
 
 ## Where we are
 
-**Wave A — Step 6 COMPLETE. Email and username sign-in, password recovery, session scoping, password replacement, username recovery, and the 10-attempt rate limit passed against the hosted services. Both Supabase OTP templates contain `{{ .Token }}`. `npm run verify` is green (lint, typecheck, build, 151 tests). The temporary account was deleted. Next: Step 7 (Google sign-in and same-email enforcement).**
+**Wave B — Step 6 COMPLETE. Email and username sign-in, password recovery, session scoping, password replacement, username recovery, and the 10-attempt rate limit passed against the hosted services. Both Supabase OTP templates contain `{{ .Token }}`. `npm run verify` is green (lint, typecheck, build, 151 tests). The temporary account was deleted. Next: Step 7 (Google sign-in and same-email enforcement).**
 
 ## Done
 
