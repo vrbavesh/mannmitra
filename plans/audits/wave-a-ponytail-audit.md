@@ -2,6 +2,8 @@
 
 Date: 2026-10-19. Reviewed revision: `6de35c9` on `main`.
 
+Follow-up audit: `8dbad7a`, 2026-10-19. Application code is unchanged. Read-only hosted catalog checks now confirm findings 1–2 against the MannMitra Supabase project; they are not based solely on migration files.
+
 What this repo does: MannMitra is a wellbeing screening and self-help app. Wave A supplies its design primitives, database isolation, stage guard, and API conventions. This audit assumes multiple unrelated users accessing a shared Supabase project through a serverless Next.js deployment.
 
 Scope: Steps 1–4 as they exist in the current repository, including changes to those foundations made during Steps 5–6. This is a retrospective audit, not an assertion that every finding existed at the end of Step 4. No earlier Wave A audit was found in the project records.
@@ -59,9 +61,12 @@ Scope: Steps 1–4 as they exist in the current repository, including changes to
 - `npm run test:e2e`: the one smoke test failed on the missing Email field on both attempts; Playwright error contexts corroborate the rendered account links. The runner stalled after its failures and was interrupted, so this is not a clean completed browser-suite run.
 - An initial concurrent verify attempt hit an ESLint directory scan race while Playwright recreated `test-results`; a subsequent standalone verify passed. This runner interaction is recorded rather than represented as an application failure.
 - Contrast ratios were calculated from the checked-in sRGB tokens using relative luminance.
-- Database findings are established from the local migration predicates, foreign keys, and their use by the stage guard. No hostile rows were inserted into the hosted project during this audit. The earlier 34-test hosted RLS result remains historical evidence, not a fresh run, and lacks the mixed-owner/lifecycle cases described above.
+- Follow-up: queried hosted `pg_policies`, `pg_constraint`, `information_schema.role_table_grants`, and non-internal public-table triggers through the Supabase connector. Programs, reports, and risk events have authenticated INSERT/UPDATE/DELETE privileges with owner-only ALL policies. References match the single-column foreign keys in the migrations; no public-table ownership triggers exist. This confirms the reported missing protections in the live configuration. No personal row contents were queried.
+- Follow-up: Supabase's hosted security advisor returned an empty lint list. This automated check does not clear application ownership/lifecycle rules; the catalog evidence above still applies.
+- Follow-up: an assert-based check called the actual `deriveStage` implementation. A same-day non-severe program returned `active`; changing its start date to 2026-09-01 returned `needs_posttest`; setting an existing pretest ID as `postSessionId` returned `completed`.
+- No hostile rows were inserted into the hosted project during either audit. The earlier 34-test hosted RLS result remains historical evidence, not a fresh run, and lacks the mixed-owner/lifecycle cases described above. The 151-test verification and stale browser-smoke failure above were run on identical application code in the immediately preceding audit and were not needlessly repeated.
 - Known accepted choices, including fail-open rate limiting during an outage and explicit local-date writes for moods, are not counted as new findings. Planned route shells and unbuilt later features are not counted as Wave A defects.
 
 Verdict: Fix first. Wave A's retrospective audit gate is open until findings 1–3 are resolved and the remaining findings are triaged. Do not describe Wave A as audit-passed.
 
-Not checked: Hosted schema drift, a fresh hosted RLS run, malicious writes against real accounts, sustained concurrency/load, dependency advisory refresh, full keyboard/screen-reader testing, and later feature implementations. This audit changes no application code or hosted settings.
+Not checked: A fresh hosted RLS run, malicious writes against real accounts, hosted Auth dashboard settings, sustained concurrency/load, dependency advisory refresh, full keyboard/screen-reader testing, and later feature implementations. Hosted catalog drift was checked for the reported ownership/lifecycle findings. This audit changes no application code or hosted settings.
