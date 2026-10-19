@@ -46,7 +46,7 @@ export type RateLimitResult = {
   remaining: number;
 };
 
-type Limiter = Pick<Ratelimit, "limit">;
+type Limiter = Pick<Ratelimit, "limit" | "resetUsedTokens">;
 
 const limiters = new Map<LimitName, Limiter>();
 
@@ -106,5 +106,13 @@ export async function checkRateLimit(
       limit: tokens,
       remaining: tokens,
     };
+  }
+}
+
+export async function resetRateLimit(name: LimitName, identifier: string): Promise<void> {
+  try {
+    await getLimiter(name).resetUsedTokens(identifier);
+  } catch (error) {
+    console.error(`[rate-limit] could not reset "${name}"`, error);
   }
 }

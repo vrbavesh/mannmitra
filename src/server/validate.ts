@@ -45,6 +45,7 @@ export const screeningSubmitRequestSchema: z.ZodType<Schemas["ScreeningSubmitReq
 export const otpRequestSchema: z.ZodType<Schemas["OtpRequestRequest"]> = z.object({
   email: z.email().max(254),
   purpose: otpPurposeSchema,
+  password: z.string().min(8).max(128).optional(),
 });
 
 export const otpVerifySchema: z.ZodType<Schemas["OtpVerifyRequest"]> = z.object({

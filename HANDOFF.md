@@ -5,32 +5,32 @@
 
 ## Where we are
 
-**Wave A — Step 4 COMPLETE. The OpenAPI contract, generated consumer types, shared server modules (errors, validation, rate limiting, serialization boundary), and contract test suite are in place. Next: Step 5.**
+**Wave A — Step 5 IN FLIGHT. Signup and OTP request/verify code, UI, contract, and tests are implemented. `npm run verify` is green (121 tests). The live email loop cannot close until Supabase sends a six-digit confirmation code; hosted delivery and template configuration remain blocked. Do not mark Step 5 complete yet.**
 
 ## Done
 
-| Step | Commit | Gate result |
-|---|---|---|
-| (seed) spec + blueprint | `39c9e78` | — |
-| 1 Scaffold + design system + test harness | `fe56c6c` (last of 5 commits) | `npm run verify` green (lint, typegen+tsc, build, 10 unit tests); Playwright smoke green; live render checked in browser; `/ponytail-review`: 4 findings all fixed and re-verified |
-| 2 Schema + RLS + triggers + cleanup | `9b436ab` (last of 4 commits) | Five hosted migrations applied; `npm run verify:rls` green (34 tests); `npm run verify` green (lint, typecheck, build, 10 unit tests); Supabase security advisor clean; temporary users/fixtures confirmed removed; `/ponytail-review`: ship |
-| 3 Stage guard + route shells + calm errors | `ccc149a` | `npm run verify` green (lint, typecheck, build, 47 tests); production HTTP checks: signed-out `/home` 307 to `/signin`, `/crisis` and `/signup/verify` 200, unknown path 404; `/ponytail-review`: ship after fixing the unscored-screening case |
-| 4 API contract + server-route conventions + rate limiting | `b5011bd` | `npm run generate:api-types` green; `npm run verify` green (lint, typecheck, build, 110 tests: 47 contract + 16 server + 47 pre-existing); `/ponytail-review`: ship after 3 fixes (composed rate-limit response, removed dead errorEnvelopeSchema, documented clientIp platform reliance) |
+| Step                                                      | Commit                        | Gate result                                                                                                                                                                                                                                                                               |
+| --------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (seed) spec + blueprint                                   | `39c9e78`                     | —                                                                                                                                                                                                                                                                                         |
+| 1 Scaffold + design system + test harness                 | `fe56c6c` (last of 5 commits) | `npm run verify` green (lint, typegen+tsc, build, 10 unit tests); Playwright smoke green; live render checked in browser; `/ponytail-review`: 4 findings all fixed and re-verified                                                                                                        |
+| 2 Schema + RLS + triggers + cleanup                       | `9b436ab` (last of 4 commits) | Five hosted migrations applied; `npm run verify:rls` green (34 tests); `npm run verify` green (lint, typecheck, build, 10 unit tests); Supabase security advisor clean; temporary users/fixtures confirmed removed; `/ponytail-review`: ship                                              |
+| 3 Stage guard + route shells + calm errors                | `ccc149a`                     | `npm run verify` green (lint, typecheck, build, 47 tests); production HTTP checks: signed-out `/home` 307 to `/signin`, `/crisis` and `/signup/verify` 200, unknown path 404; `/ponytail-review`: ship after fixing the unscored-screening case                                           |
+| 4 API contract + server-route conventions + rate limiting | `b5011bd`                     | `npm run generate:api-types` green; `npm run verify` green (lint, typecheck, build, 110 tests: 47 contract + 16 server + 47 pre-existing); `/ponytail-review`: ship after 3 fixes (composed rate-limit response, removed dead errorEnvelopeSchema, documented clientIp platform reliance) |
 
 ## In flight
 
-None. Step 5 has not started.
+Step 5 app work is implemented and reviewed. The hosted project has email confirmation enabled and OTP expiry set to 120 seconds. OTP length remains 8 digits. The free project's default email delivery disables editing the confirmation template, so `{{ .Token }}` cannot yet be placed in the message. App-side route and cookie tests pass; browser inspection confirms the signup and verify screens render. A real signup → inbox code → verify → onboarding run is still required.
 
 ## Next up
 
-**Step 5 — Email OTP request + verify (spec §3.1–§3.2)** (blueprint §2). Server routes `POST /api/auth/otp/request` + `/verify` wrapping Supabase Auth with the Step 4 contract, rate limiting, and calm error envelope. Operator must first configure OTP settings + `{{ .Token }}` email template in Supabase (spec'd in `docs/supabase-auth-settings.md`).
+**Finish Step 5:** the user chose their existing custom SMTP service. Obtain its host, port, sender, and username; the user must enter its password in Supabase. Configure the confirmation template with `{{ .Token }}` and set OTP length to 6; run the real signup → inbox code → verify → onboarding loop. Then rerun `npm run verify`, close the Step 5 review, append its AGENTS.md progress line, and commit the close-out. No push without explicit user approval.
 
 ## Open blockers (operator, §6)
 
 - [x] Supabase project + keys — DONE (in `.env.local`, gitignored)
 - [x] Hosted Step 2 migrations + RLS/Storage verification — DONE (`verify:rls`: 34/34)
 - [x] Upstash Redis keys — DONE (in `.env.local`, gitignored; Step 4 rate limiting uses them)
-- [ ] OTP settings + `{{ .Token }}` email template (spec'd in `docs/supabase-auth-settings.md`; needed by Step 5)
+- [ ] OTP settings + `{{ .Token }}` email template (expiry is 120 seconds; length remains 8; template editing needs a delivery option, see `docs/supabase-auth-settings.md`)
 - [ ] Google OAuth credentials (Step 7 / Gate G4)
 - [ ] Google Places key or OSM approval (Step 11)
 - [ ] Groq key (optional Step 19)
@@ -39,6 +39,8 @@ None. Step 5 has not started.
 - Launch gates G1–G7 (blueprint §7) block public deploy; none started.
 
 ## Key decisions
+
+- **Step 5 in-flight:** Signup uses server-side Supabase Auth calls with no password persisted in browser storage; only email and sent time are held in sessionStorage for the verify screen. Both new and existing account responses are neutral. Upstash hashes email+purpose for challenge keys, enforces the two-minute request cooldown and five verification attempts, and resets attempts after resend. The verify route attaches Supabase session cookies to its response so the Stage 3 proxy can reach `/onboarding`. A missing challenge-store record falls back to Supabase's OTP decision. The hosted email configuration blocks the required live test, so this remains an in-flight step despite a green code gate.
 
 - **Step 4: OpenAPI 3.1 contract is the single source of truth.** `contracts/openapi.yaml` defines four routes (`POST /api/auth/signin`, `/api/screening/sessions`, `/api/auth/otp/request`, `/api/auth/otp/verify`), one error envelope `{error:{code,message,details?}}` with 10 machine codes, and per-status code pins via `allOf`+`const` so a wrong code on the wrong status fails machine validation. `npm run generate:api-types` (pinned `openapi-typescript@7.13.0`) produces `src/generated/api.ts`; the script is committed. Contract tests (47) validate fixtures against the YAML itself with Ajv 2020 (OpenAPI 3.1 = JSON Schema 2020-12), including a self-check that every embedded example matches its schema.
 - **Step 4: Zod schemas asserted against generated types.** `src/server/validate.ts` uses `z.ZodType<T>` annotations so tsc fails if the schemas and the contract ever disagree. Request parsing throws the contract's 422 (`validation_failed`) with per-field dotted paths. `src/server/respond.ts` is the serialization boundary: every future route builds JSON through `respond()`, which validates against the contract-derived Zod schema before it reaches the wire.

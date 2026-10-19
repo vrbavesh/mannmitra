@@ -55,7 +55,7 @@ export interface paths {
     put?: never;
     /**
      * Send a one-time code by email
-     * @description Sends a 6-digit code valid 2 minutes (values enforced in Supabase Auth settings; spec 3.1). Resend cooldown 2 minutes; a resend cancels the previous code. The response is byte-identical whether or not an account exists (anti-enumeration): unknown email, password account, and Google-only account all get 200 ok. Rate limits: 5 requests per 10 minutes per email+purpose and 10 per 10 minutes per IP.
+     * @description Sends a 6-digit code valid 2 minutes (values enforced in Supabase Auth settings; spec 3.1). Resend cooldown 2 minutes; a resend cancels the previous code. The response is byte-identical whether or not an account exists (anti-enumeration): unknown email, password account, and Google-only account all get 200 ok. For signup, a password starts registration; omitting it requests a new confirmation code. Rate limits: 1 request per 2 minutes per email+purpose and 5 per 10 minutes per IP.
      */
     post: operations["requestOtp"];
     delete?: never;
@@ -181,6 +181,8 @@ export interface components {
       email: string;
       /** @enum {string} */
       purpose: "signup" | "forgot_password" | "forgot_username";
+      /** @description Required by the signup screen on first request; omit for resend. */
+      password?: string;
     };
     OtpRequestResponse: {
       /** @constant */

@@ -253,6 +253,8 @@ describe("contract: POST /api/auth/otp/request fixtures", () => {
   it("validates the purpose enum and email format", () => {
     const validate = schemaAt("/components/schemas/OtpRequestRequest");
     expect(validate({ email: "a@example.com", purpose: "forgot_username" })).toBe(true);
+    expect(validate({ email: "a@example.com", purpose: "signup", password: "safe-pass-123" })).toBe(true);
+    expect(validate({ email: "a@example.com", purpose: "signup", password: "short" })).toBe(false);
     expect(validate({ email: "a@example.com", purpose: "steal_passwords" })).toBe(false);
     expect(validate({ email: "not-an-email", purpose: "signup" })).toBe(false);
   });
