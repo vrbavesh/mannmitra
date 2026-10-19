@@ -62,3 +62,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - 2026-10-19  Step 2 — Hosted verification complete; advisor hardening — 9b436ab
 - 2026-10-19  Step 3 — Stage guard, route shells, calm errors — ccc149a
 - 2026-10-19  Step 4 — API contract, server conventions, rate limiting — b5011bd
+- 2026-10-19  Step 5 — Email signup, OTP verify, session cookies (live-verified) — fef4f01

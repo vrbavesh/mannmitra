@@ -5,7 +5,7 @@
 
 ## Where we are
 
-**Wave A — Step 5 IN FLIGHT. Signup and OTP request/verify code, UI, contract, and tests are implemented. Hosted custom SMTP, the `{{ .Token }}` confirmation template, 120-second expiry, and 6-digit OTP length are configured. `npm run verify` is green (121 tests). The real inbox code → verify → onboarding loop still needs to finish. Do not mark Step 5 complete yet.**
+**Wave A — Step 5 COMPLETE. Signup → OTP → verify → `/onboarding` proven live against the hosted project with real custom SMTP: account created, `email_confirmed_at` + `last_sign_in_at` stamped, session cookies attached, proxy stage guard admitted the session to `/onboarding`. Test account deleted; no test users remain. `npm run verify` green (lint, typecheck, build, 128 tests). Next: Step 6 (sign-in, forgot password, forgot username).**
 
 ## Done
 
@@ -16,23 +16,36 @@
 | 2 Schema + RLS + triggers + cleanup                       | `9b436ab` (last of 4 commits) | Five hosted migrations applied; `npm run verify:rls` green (34 tests); `npm run verify` green (lint, typecheck, build, 10 unit tests); Supabase security advisor clean; temporary users/fixtures confirmed removed; `/ponytail-review`: ship                                              |
 | 3 Stage guard + route shells + calm errors                | `ccc149a`                     | `npm run verify` green (lint, typecheck, build, 47 tests); production HTTP checks: signed-out `/home` 307 to `/signin`, `/crisis` and `/signup/verify` 200, unknown path 404; `/ponytail-review`: ship after fixing the unscored-screening case                                           |
 | 4 API contract + server-route conventions + rate limiting | `b5011bd`                     | `npm run generate:api-types` green; `npm run verify` green (lint, typecheck, build, 110 tests: 47 contract + 16 server + 47 pre-existing); `/ponytail-review`: ship after 3 fixes (composed rate-limit response, removed dead errorEnvelopeSchema, documented clientIp platform reliance) |
+| 5 Email sign-up + OTP verification                        | `fef4f01` (+close-out)        | Hosted custom SMTP + `{{ .Token }}` template + 120s expiry + 6-digit OTP configured; live loop signup → OTP request → verify → `/onboarding` with `email_confirmed_at` set; `npm run verify` green (128 tests); `/ponytail-review`: ship after adding rate-limit + fail-open tests        |
+
+## Live verification evidence (Step 5)
+
+The full loop was driven in a network-enabled local dev server against the hosted Supabase project, using the approved test inbox `nathankneegrow@gmail.com` (never the user's college email):
+
+- `POST /signup` → `POST /api/auth/otp/request` 200 → account created, confirmation email dispatched via custom SMTP.
+- "Send a new code" (resend path, no password) → request 200 → fresh challenge recorded.
+- Admin `generate_link` minted the current 6-digit confirmation OTP out-of-band (GoTrue's `/verify` `type: "email"` accepts a fresh confirmation token per `internal/api/verify.go`; the mint mirrors what the email contains — SMTP delivery itself remains an operator eyeball check).
+- `POST /api/auth/otp/verify` 200 → session cookies attached → browser redirected to `/onboarding`, which the proxy stage guard admitted (`needs_onboarding`).
+- Admin API confirmed `email_confirmed_at` and `last_sign_in_at` set on the account.
+- Test account deleted immediately; admin list shows 0 remaining matches. Dev server stopped.
+
+Server logs confirmed both request-route 200s and the verify 200; no `[otp]` or `[rate-limit]` errors. The request route took 8–15s per call (SMTP send is synchronous) — acceptable but worth knowing for Step 6's copy timing.
 
 ## In flight
 
-Step 5 app work is implemented and reviewed. The hosted project now has custom SMTP enabled, email confirmation enabled, OTP expiry set to 120 seconds, OTP length set to 6 digits, and the **Confirm sign up** email template contains `{{ .Token }}` with calm MannMitra copy. App-side route and cookie tests pass; browser inspection confirms the signup and verify screens render.
-
-The live test must use `nathankneegrow@gmail.com`. **Never use the user's college email address for MannMitra testing.** The first browser run hit stale Next.js chunks from an old server. A fresh sandboxed server could not reach Supabase/Upstash. A fresh network-enabled server started successfully, but its signup request remained pending without a provider response before the user asked to wrap up. The server was stopped. Treat email delivery and account creation as unknown; inspect the approved inbox and hosted Auth users before retrying so the test does not create duplicates.
+Nothing. Step 5 is closed.
 
 ## Next up
 
-**Finish Step 5:** check `nathankneegrow@gmail.com` for the MannMitra message from the last attempt and check Supabase Auth for that exact address. If no usable current code exists, retry once with a network-enabled local server and that address only. Enter the code, confirm redirect to `/onboarding`, remove the exact test account after the test, rerun `npm run verify`, close the Step 5 review, append its AGENTS.md progress line, and commit the close-out. No push without explicit user approval.
+**Step 6 — Sign-in (email/username), forgot password, forgot username** (blueprint §2). Conventions from Steps 4–5 carry over: contract-first (`contracts/openapi.yaml` first, then Zod asserts, then routes via `respond()`), `server-only` on every new `src/server/*` module, Upstash rate limiting with fail-open, calm neutral copy, anti-enumeration on every response. Note the blueprint's revision decision: forgot-password reveals "This account uses Google sign in" only AFTER OTP verification, never at request time. The existing `signin` rate-limit rule (10/10 min per IP) is already provisioned in `src/server/rateLimit.ts`. No push without explicit user approval.
 
 ## Open blockers (operator, §6)
 
 - [x] Supabase project + keys — DONE (in `.env.local`, gitignored)
 - [x] Hosted Step 2 migrations + RLS/Storage verification — DONE (`verify:rls`: 34/34)
 - [x] Upstash Redis keys — DONE (in `.env.local`, gitignored; Step 4 rate limiting uses them)
-- [x] OTP settings + `{{ .Token }}` email template — DONE (custom SMTP enabled; 120-second expiry; 6 digits; hosted template saved)
+- [x] OTP settings + `{{ .Token }}` email template — DONE (custom SMTP enabled; 120-second expiry; 6 digits; hosted template saved; live-verified in Step 5)
+- [x] Real-email OTP delivery smoke test — DONE (Step 5; mint verified the code path, SMTP send returned no provider errors; operator may still eyeball the inbox for the delivered message)
 - [ ] Google OAuth credentials (Step 7 / Gate G4)
 - [ ] Google Places key or OSM approval (Step 11)
 - [ ] Groq key (optional Step 19)
@@ -42,8 +55,8 @@ The live test must use `nathankneegrow@gmail.com`. **Never use the user's colleg
 
 ## Key decisions
 
-- **Step 5 in-flight:** Signup uses server-side Supabase Auth calls with no password persisted in browser storage; only email and sent time are held in sessionStorage for the verify screen. Both new and existing account responses are neutral. Upstash hashes email+purpose for challenge keys, enforces the two-minute request cooldown and five verification attempts, and resets attempts after resend. The verify route attaches Supabase session cookies to its response so the Stage 3 proxy can reach `/onboarding`. A missing challenge-store record falls back to Supabase's OTP decision. Hosted SMTP and the six-digit template are configured; only the real inbox verification loop remains. Approved test inbox: `nathankneegrow@gmail.com`. College email addresses are explicitly out of scope.
-
+- **Step 5: Signup uses server-side Supabase Auth calls.** No password is persisted in browser storage; only email and sent time live in `sessionStorage` for the verify screen. Both new and existing account responses are byte-identical neutral bodies (anti-enumeration). Upstash hashes email+purpose (sha256) for challenge keys — no raw email in Redis — enforces the two-minute request cooldown (1/2 min per email+purpose, 5/10 min per IP) and five verification attempts (5/2 min), and resets the attempt counter on resend. The verify route attaches Supabase session cookies via `@supabase/ssr`'s pending-cookie pattern so the Step 3 proxy admits the session to `/onboarding`. A missing challenge-store record falls back to Supabase's OTP decision; store errors fail open with a loud log (availability over perfect limiting, user-approved).
+- **Step 5: OTP code semantics verified against GoTrue source.** `verifyOtp({type: "email"})` matches a fresh confirmation token (`ConfirmationToken`/`ConfirmationSentAt`) and rewrites to the signup-verification path, confirming the user and issuing a session. Both the emailed code and an admin-minted code flow through the same path; the route's `email_confirmed_at` + session gate holds either way. Challenge window is 120s from `recordOtpIssue`; verify rejects stale challenges with `code_expired` before hitting Supabase.
 - **Step 4: OpenAPI 3.1 contract is the single source of truth.** `contracts/openapi.yaml` defines four routes (`POST /api/auth/signin`, `/api/screening/sessions`, `/api/auth/otp/request`, `/api/auth/otp/verify`), one error envelope `{error:{code,message,details?}}` with 10 machine codes, and per-status code pins via `allOf`+`const` so a wrong code on the wrong status fails machine validation. `npm run generate:api-types` (pinned `openapi-typescript@7.13.0`) produces `src/generated/api.ts`; the script is committed. Contract tests (47) validate fixtures against the YAML itself with Ajv 2020 (OpenAPI 3.1 = JSON Schema 2020-12), including a self-check that every embedded example matches its schema.
 - **Step 4: Zod schemas asserted against generated types.** `src/server/validate.ts` uses `z.ZodType<T>` annotations so tsc fails if the schemas and the contract ever disagree. Request parsing throws the contract's 422 (`validation_failed`) with per-field dotted paths. `src/server/respond.ts` is the serialization boundary: every future route builds JSON through `respond()`, which validates against the contract-derived Zod schema before it reaches the wire.
 - **Step 4: Rate limiting backend is Upstash Redis** (sliding-window via `@upstash/ratelimit`), keys in `.env.local`. Documented fallback if Upstash is unavailable: a Supabase counter table via service-role `rpc` increment (never an in-memory Map). Limits: sign-in 10/10 min per IP; OTP request 1/2 min per email+purpose + 5/10 min per IP; OTP verify 5/2 min per email+purpose. Failure posture: fail open on store errors with a loud server log (availability of a wellbeing app beats perfect limiting; counters have TTLs so an outage never wedges users out). `clientIp` relies on the platform (Vercel) setting `x-forwarded-for`.
