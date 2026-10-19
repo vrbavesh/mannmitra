@@ -34,24 +34,36 @@ the user-approved test inbox recorded in `HANDOFF.md`.
 
 ## Google provider (Step 7, spec §3.4)
 
-Hosted state checked 2026-10-19: **disabled**. `GET /auth/v1/settings` returns
-`external.google: false` and `GET /auth/v1/authorize?provider=google` returns
-`400 Unsupported provider: provider is not enabled`. Client ID and secret in
-`.env.local` are only reference copies; the app never reads them.
+Hosted state re-checked **2026-10-19: ENABLED and verified**. `GET
+/auth/v1/settings` returns `"google": true` and `GET
+/auth/v1/authorize?provider=google` returns a 302 into `accounts.google.com`
+carrying client_id `130150009993-…` with `redirect_uri` =
+`https://rgbqzsivegyijacmrfqi.supabase.co/auth/v1/callback`; fetched
+anonymously that Google URL answers 302 with no `redirect_uri_mismatch` or
+`invalid_client`, so the client and its authorized redirect URI are correct.
+Manual linking was verified by probe rather than by reading the toggle: a
+temporary confirmed password account was signed in, then `DELETE
+/auth/v1/user/identities/{id}` returned `422 single_identity_not_deletable`
+(handler reached) instead of `manual_linking_disabled`. Client ID and secret in
+`.env.local` remain reference copies only; the app never reads them.
 
-Operator checklist before the Step 7 live matrix can run:
+What was configured (all four items done):
 
-1. **Supabase Dashboard → Authentication → Providers → Google**: enable it and
-   paste the OAuth client ID + secret.
-2. **Google Cloud Console → OAuth client**: add the authorized redirect URI
-   `https://rgbqzsivegyijacmrfqi.supabase.co/auth/v1/callback`. If the consent
-   screen is in testing mode, add the approved test inbox as a test user.
-3. **Supabase Dashboard → Authentication → URL Configuration**: keep the Site
-   URL in place and allow the app callbacks
-   `http://localhost:3000/api/auth/callback` (development) and
-   `https://<production-host>/api/auth/callback`.
-4. **Supabase Dashboard → Authentication → Settings → Manual linking**:
-   enable it. GoTrue gates `DELETE /user/identities/{id}` behind
+1. **Supabase Dashboard → Authentication → Sign In / Providers → Google**:
+   enabled, with the OAuth client ID and secret pasted in. (Older dashboards
+   exposed these base options under Authentication → Settings; the current
+   dashboard moved them onto the Sign In / Providers page.)
+2. **Google Cloud Console → OAuth client**: authorized redirect URI
+   `https://rgbqzsivegyijacmrfqi.supabase.co/auth/v1/callback` added, and the
+   approved test inbox added as a test user if the consent screen is still in
+   testing mode.
+3. **Supabase Dashboard → Authentication → URL Configuration**: Site URL kept,
+   and the app callback `http://localhost:3000/api/auth/callback` allowed in
+   addition to the production host. This one cannot be verified from outside —
+   GoTrue echoes `redirect_to` verbatim even for a bogus domain, so only a
+   completed flow proves the entry took effect.
+4. **Supabase Dashboard → Authentication → Sign In / Providers → Allow manual
+   linking**: enabled. GoTrue gates `DELETE /user/identities/{id}` behind
    `security.manual_linking_enabled` (`requireManualLinkingEnabled`). Without
    it the same-email audit still blocks the sign-in and ends the session, but
    it cannot remove the Google identity from the password account.

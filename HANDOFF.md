@@ -5,7 +5,7 @@
 
 ## Where we are
 
-**Wave B — Step 6 COMPLETE; Step 7 CODE COMPLETE AND LOCALLY VERIFIED, but not closed out: the hosted Google provider is still disabled, so the real same-email matrix (Launch Gate G4) has not run. Wave A retrospective audit remediation is complete: all seven findings resolved, hosted ownership/lifecycle migration applied, Ponytail diff review: Ship. Last verification is green (lint, typecheck, build, 172 unit/contract tests, 3 production browser checks); hosted RLS passes 58 tests. The Google provider and manual linking must be enabled in the Supabase dashboard before the live matrix can run.**
+**Wave B — Step 6 COMPLETE. Step 7 CODE COMPLETE and locally verified; the Supabase dashboard configuration is now DONE and independently verified (Google provider live, Google client accepted, manual linking enabled). The real same-email matrix (Launch Gate G4) has NOT run: nothing has ever been signed in through Google. Exactly one hosted account exists, seeded as the prepared case (c) collision target (id `11167e6f-03fa-4578-afb6-8cd6dfc02de3`, `email` identity only). Wave A retrospective audit remediation is complete: all seven findings resolved, hosted ownership/lifecycle migration applied, Ponytail diff review: Ship. Last verification is green (lint, typecheck, build, 172 unit/contract tests, 3 production browser checks); hosted RLS passes 58 tests. Nothing is pushed: local `main` is 6 commits ahead of `origin/main`.**
 
 ## Done
 
@@ -34,13 +34,20 @@ Server logs confirmed both request-route 200s and the verify 200; no `[otp]` or 
 
 ## In flight
 
-**Step 7 implementation done; hosted Google provider still disabled (2026-10-19).** Working on `main`; nothing pushed. Built per spec §3.4 and the blueprint:
+**Step 7 implementation done; dashboard configured and verified; the live matrix is the only thing left (2026-10-19).** Working on `main`; nothing pushed; HEAD `663ac50`. Built per spec §3.4 and the blueprint:
 
 - `GET /api/auth/google` starts Supabase Google OAuth with PKCE (`skipBrowserRedirect`, fixed `redirectTo` = this origin's `/api/auth/callback`, `prompt=select_account`). Live check: 302 to the Supabase authorize URL with the right `provider`, `redirect_to`, `code_challenge`, and three PKCE verifier cookies; `Cache-Control: private, no-store`.
 - `GET /api/auth/callback` exchanges the code, then runs the same-email audit. Conflict path = unlink the Google identity, end the session, and attach NO cookies (the browser never receives a session); user lands on `/signin?notice=google_conflict` with the exact spec copy. Cancellation (`?error=`) and failed exchanges land on `/signin` with calm notices. Live checks: all three failure paths returned 302 with zero cookies.
 - `src/server/googleIdentity.ts` holds the rule; `src/components/auth/GoogleButton.tsx` + `SigninForm.tsx` + `/signup` render the provider button and the calm notices.
 - Contract: two new redirect-only paths in `contracts/openapi.yaml`; generated types refreshed and prettier-formatted (the `generate:api-types` script now formats its output).
-- Dashboard checklist written in `docs/supabase-auth-settings.md`: enable the provider, add the Google redirect URI, allow the app callback URLs, and **enable manual linking** (GoTrue gates `DELETE /user/identities/{id}` behind `security.manual_linking_enabled`).
+- Dashboard checklist in `docs/supabase-auth-settings.md` (all four items now marked done): enable the provider, add the Google redirect URI, allow the app callback URLs, and **enable manual linking** (GoTrue gates `DELETE /user/identities/{id}` behind `security.manual_linking_enabled`).
+
+Dashboard configuration — COMPLETE and verified from outside the dashboard (2026-10-19):
+
+- Provider live: `GET /auth/v1/settings` returns `"google": true` (`email` also true; anonymous sign-ins and phone off; `mailer_autoconfirm: false`, so confirm-email is still required).
+- Client pair registered: `GET /auth/v1/authorize?provider=google` returns 302 into `accounts.google.com` carrying client_id `130150009993-…` and `redirect_uri=https://rgbqzsivegyijacmrfqi.supabase.co/auth/v1/callback`; fetched anonymously, that Google URL returns 302 with no `redirect_uri_mismatch` or `invalid_client` — so the Google Cloud client **and** its authorized redirect URI are correct.
+- Manual linking enabled: proved by probe rather than by reading a toggle. A temporary confirmed password account was created, signed in through the password grant, then `DELETE /auth/v1/user/identities/{id}` with that session returned **422 `single_identity_not_deletable`**. Reaching handler validation means `requireManualLinkingEnabled` passed; a project with manual linking off answers `manual_linking_disabled` instead. The temporary account was deleted and the list returned to 0.
+- **Not** verifiable from outside: the `http://localhost:3000/api/auth/callback` entry in URL Configuration. GoTrue echoes `redirect_to` verbatim even for a bogus external domain, so authorization-time reflection proves nothing here; only a completed flow shows whether the value survives to the callback. If the localhost entry is missing, Google returns to the Site URL instead of the localhost callback and case (a) fails visibly.
 
 Research that shaped the design (verified against upstream source, not memory):
 
@@ -48,7 +55,7 @@ Research that shaped the design (verified against upstream source, not memory):
 - When an _unconfirmed_ email account is reached by Google, GoTrue clears the password and removes the email identity (`RemoveUnconfirmedIdentities` sets `EncryptedPassword = nil`), so there is no password account left to block; the identity check correctly allows it.
 - Hosted precondition verified with a temporary admin-created account: password accounts carry exactly one `email` identity and `app_metadata.provider = "email"` (account deleted, 0 left).
 
-Still open: the real Google matrix (a) new email → onboarding, (b) returning → stage route, (c) password account + Google → blocked with no session. Run it through the browser panel with `nathankneegrow@gmail.com` once the dashboard is configured; then close the step.
+Still open: the real matrix itself. The prepared hosted state and the exact run order are in "Next up"; the case (c) collision target is already seeded and waiting.
 
 ## Live verification evidence (Step 6)
 
@@ -65,22 +72,45 @@ Still open: the real Google matrix (a) new email → onboarding, (b) returning �
 - Ponytail review found one username timing difference; unknown usernames now perform the same admin lookup sequence before the uniform 401. Re-review: ship.
 - Operator confirmed the hosted Magic Link template contains `{{ .Token }}` and the two-minute wording.
 
-## Live verification evidence (Step 7, in progress)
+## Live verification evidence (Step 7, matrix still pending)
 
 Local dev server against the hosted project, approved inbox only (`nathankneegrow@gmail.com`), 2026-10-19:
 
-- Provider probe: `GET /auth/v1/settings` → `external.google: false`; `GET /auth/v1/authorize?provider=google` → `400 Unsupported provider: provider is not enabled`. The dashboard still needs the client ID/secret and manual linking.
-- `GET /api/auth/google` → 302; `provider=google`, `redirect_to=http://localhost:3000/api/auth/callback`, `code_challenge` present, three `sb-*-code-verifier` cookies, `private, no-store`.
+- Provider probe: `GET /auth/v1/settings` → `"google": true`; `GET /auth/v1/authorize?provider=google` → 302 into Google with client_id `130150009993-…` and Supabase's own `redirect_uri`. An anonymous fetch of that Google URL returns 302 with no client or redirect error.
+- Manual-linking probe: temp confirmed password account → password-grant sign-in → `DELETE /auth/v1/user/identities/{id}` → `422 single_identity_not_deletable` (gate passed). Temp account deleted; list back to 0.
+- Startup precondition probe: `POST /auth/v1/admin/users` with `email_confirm: true` yields exactly one `email` identity and `app_metadata.providers = ["email"]`, which is the shape case (c) needs. (The admin list endpoint omits `identities`, so read each user by id — `GET /auth/v1/admin/users/{id}` — to see them.)
+- `GET /api/auth/google` → 302; `provider=google`, `redirect_to=http://localhost:3000/api/auth/callback`, `code_challenge` present, `prompt=select_account`, three `sb-*-code-verifier` cookies, `private, no-store`.
 - `GET /api/auth/callback?error=access_denied` → 302 `/signin?notice=google_cancelled`, no cookies.
 - `GET /api/auth/callback` (no code) → 302 `/signin?notice=google_failed`, no cookies.
 - `GET /api/auth/callback?code=not-a-real-code` → 302 `/signin?notice=google_failed`, no cookies.
-- `/signin?notice=google_conflict` renders the exact spec copy in a calm amber card, above the Google button and the email form; `/signin` is now a dynamic route (`instant = false`) because the notice arrives in the query string.
-- Hosted identity shape: an admin-created confirmed password account exposes exactly one `email` identity and `app_metadata.provider = "email"`; account deleted, 0 remaining.
+- `/signin?notice=google_conflict` renders the exact spec copy in a calm amber card, above the Google button and the email form; `/signin` is a dynamic route (`instant = false`) because the notice arrives in the query string.
+- Hosted identity shape: an admin-created confirmed password account exposes exactly one `email` identity and `app_metadata.provider = "email"`; that account was deleted, 0 remaining.
+- Seeded case (c) target, verified present right before this handoff: `11167e6f-03fa-4578-afb6-8cd6dfc02de3`, `nathankneegrow@gmail.com`, identities `email` only (`17bd4010-2fb0-4cb8-8f40-a62064fa1410`), `email_confirmed_at` set, `last_sign_in_at` null — i.e. nobody has signed in through Google yet, so the matrix below is genuinely unrun.
 - `npm run verify`: lint, typecheck, build, 172 tests, 3 browser checks green. Ponytail diff review: ship after (1) making the "session ended" wording honest (best effort, no cookie ever reaches the browser) and (2) logging the start-route failure code instead of failing silently.
 
 ## Next up
 
-**Operator: enable Google in the Supabase dashboard (steps in `docs/supabase-auth-settings.md`), then run the real same-email matrix and close Step 7.** Order: (1) provider + redirect URI + allow-listed callback URLs, (2) manual linking, (3) browser matrix with `nathankneegrow@gmail.com` — new email → `/onboarding`; repeat → stage route; then create a password account for that inbox and confirm Google blocks with the spec copy and leaves no session and no `google` identity. Delete every temporary account afterwards. Gate G4 needs real credentials; a Google-disabled fallback is not acceptable proof. Commit the close-out (HANDOFF rewrite + AGENTS.md progress line) after the matrix, and push only with explicit approval.
+**Codex: run the 3-case matrix, then close Step 7.** Dashboard config is done and verified (see "In flight"); the hosted project is clean apart from the seeded case (c) target. Gate G4 needs real Google credentials; a provider-disabled fallback is not acceptable proof.
+
+Prepared state: exactly one hosted account exists — id `11167e6f-03fa-4578-afb6-8cd6dfc02de3`, `nathankneegrow@gmail.com`, identity `email` only, `email_confirmed_at` set, never signed in. It is the case (c) collision target. A dev server was started on `http://localhost:3000` from this repo (run `npm run dev` if it is no longer up). The browser profile has no Google session, so the first flow asks for the password once; later flows are one click.
+
+Run in this order — case (c) first, so there is only one pause:
+
+1. **Case (c) — same-email conflict.** Nothing is signed in. Open `http://localhost:3000/signin`, click Continue with Google, choose `nathankneegrow@gmail.com`.
+   - Pass: lands on `/signin?notice=google_conflict` with the exact spec copy ("An account with this email already exists. Please sign in with your email and password."), **and** `http://localhost:3000/home` afterwards bounces back to `/signin` — proof that no session cookie was ever attached.
+   - Verify in hosted data: the seeded account still exists with **only** the `email` identity; the auto-linked `google` identity must be gone.
+   - If it lands anywhere else, or `/home` lets the user in, stop and fix `src/server/googleIdentity.ts` / `src/app/api/auth/callback/route.ts` before running anything else.
+2. **Delete the seeded account and confirm the user list is empty.** This step is the trap: while a password account exists for that email, Google auto-links and the app correctly blocks, so case (a) can never create a new user. `DELETE /auth/v1/admin/users/11167e6f-03fa-4578-afb6-8cd6dfc02de3` with the service-role key.
+3. **Case (a) — new user.** From `/signin`, Continue with Google again.
+   - Pass: lands on `/onboarding`. (Onboarding is still the Step 3 placeholder, so that is the correct destination; the real form arrives in a later step.)
+   - Verify: exactly 1 user, a `google` identity **only**, `email_confirmed_at` set, fresh `created_at`.
+4. **Case (b) — returning user.** There is no sign-out UI yet, so drop the session by hand: on `http://localhost:3000`, open DevTools → Console and run
+   `document.cookie.split(';').forEach(c => { const n = c.split('=')[0].trim(); document.cookie = n + '=; Max-Age=0; path=/'; }); location.href = '/signin';`
+   (or DevTools → Application → Storage → Clear site data), then Continue with Google again.
+   - Pass: lands on `/onboarding` again. Because onboarding is still a placeholder the URL is *identical* to case (a), so the URL proves nothing on its own — the proof is hosted data: still exactly **1** user, the **same id** as case (a), `last_sign_in_at` moved, and **no second account** created.
+5. **Cleanup and close-out.** Delete every temporary account; confirm 0 remain. Stop the dev server, then re-run `npm run verify` (lint, typecheck, build, 172 tests, 3 browser checks). Rewrite this HANDOFF as the Step 7 close-out with the matrix results, append the AGENTS.md progress line, correct the Google section of `docs/supabase-auth-settings.md` (it is already updated to "enabled" as of this handoff), and commit. Push only with explicit user approval — that push would carry `663ac50` plus the 5 earlier unpushed commits.
+
+Helper scripts used for the probes above live in the approved temp dir (`step7-state.ps1`, `step7-config-probe3.ps1`, `step7-seed-casec.ps1`) and must never be committed.
 
 ## Open blockers (operator, §6)
 
@@ -90,7 +120,8 @@ Local dev server against the hosted project, approved inbox only (`nathankneegro
 - [x] OTP settings + Confirm sign up `{{ .Token }}` template — DONE (custom SMTP enabled; 120-second expiry; 6 digits; hosted template saved; live-verified in Step 5)
 - [x] Magic Link recovery template contains `{{ .Token }}` — DONE (operator confirmed 2026-10-19)
 - [x] Real-email OTP delivery smoke test — DONE (Step 5; mint verified the code path, SMTP send returned no provider errors; operator may still eyeball the inbox for the delivered message)
-- [ ] Google OAuth (Step 7 / Gate G4) — client ID/secret added to `.env.local` (reference only); **dashboard provider + manual linking still to enable**
+- [x] Google OAuth dashboard config (Step 7) — DONE (verified 2026-10-19 from outside the dashboard: `settings.google: true`; authorize 302 into Google carrying client_id `130150009993-…` and Supabase's `redirect_uri`; manual linking proved enabled by the unlink probe). The URL Configuration entry for `http://localhost:3000/api/auth/callback` stays unproved until one real flow completes.
+- [ ] Gate G4 same-email matrix (Step 7 close-out) — prepared and deliberately unrun; exact run order, expected results, and the seeded case (c) target are in "Next up".
 - [ ] Google Places key or OSM approval (Step 11)
 - [ ] Groq key (optional Step 19)
 - [x] GitHub remote — DONE (`origin`: `https://github.com/vrbavesh/mannmitra.git`; pushes require explicit user approval)
@@ -104,6 +135,8 @@ Local dev server against the hosted project, approved inbox only (`nathankneegro
 - **Step 7: Google users skip the unverified stage naturally.** GoTrue confirms the account when the provider email is verified, so the Step 3 proxy's `email_confirmed_at` gate already routes them by stage (`needs_onboarding` → `/onboarding`, otherwise the stage page). New Google users get `display_name` from `raw_user_meta_data.full_name` and `auth_provider = 'google'` from the existing trigger; the onboarding name prefill belongs to Step 8.
 - **Step 7: `/signin` is dynamic.** It reads `?notice=` for the calm Google notices (`instant = false`), so the conflict copy is server-rendered instead of set in an effect (which the React Compiler lint rejects).
 - **Step 7: `npm run generate:api-types` now prettier-formats its output.** The committed `src/generated/api.ts` was 2-space formatted, so a raw regeneration produced a 1,300-line noise diff; the script ends with `prettier --write` to keep the diff honest.
+- **Step 7: manual linking was verified by probing the endpoint, not by reading the dashboard toggle.** `DELETE /auth/v1/user/identities/{id}` with a real session answered `422 single_identity_not_deletable`, which means the request cleared `requireManualLinkingEnabled`; a project with manual linking off answers `manual_linking_disabled` instead. Reuse this probe whenever that setting's state is in doubt, since no settings endpoint exposes it.
+- **Step 7: case (c) has to run before cases (a)/(b), and its target account has to be deleted in between.** Supabase auto-links a verified Google email to any matching password account, so while that account exists a Google sign-in is *always* a conflict — case (a) cannot produce a new user until it is gone. Getting this order wrong looks like a case (a) failure but is correct behaviour.
 
 - **Wave A audit remediation, 2026-10-19:** composite ownership foreign keys cover every program/session reference. Programs, reports, and risk events are read-only to ordinary clients. Steps 11/12/16 must implement their writers through authenticated server operations with ownership, screening-kind, timing, and stage checks; do not re-enable direct client lifecycle mutations. Mood program deletion clears only `program_id`, preserving `user_id`. Hosted migration `20261019123332` is recorded locally with the connector's canonical version.
 - **Wave A test gate:** `npm run verify` now includes three Playwright checks against the production build. Browser artifacts are excluded from lint. The hosted RLS suite remains a separate network-enabled command (58 tests), with storage cleanup and cascade assertions. Local Supabase Auth settings/templates were statically checked; no local Docker/CLI is installed for an email runtime test.
