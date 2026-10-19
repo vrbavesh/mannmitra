@@ -23,6 +23,11 @@ Next.js 16 (App Router, TypeScript, `src/` dir), Tailwind CSS v4, Supabase (Auth
 | `npm test` / `npx vitest run` | unit/component tests |
 | `npm run lint` / `npx tsc --noEmit` | individually |
 
+## Git workflow
+
+- Commit every completed blueprint step after its verification, review, and status close-out.
+- Push only after the user explicitly approves that push.
+
 ## Hard invariants (never break these)
 
 1. `service_role` key and secrets never reach client bundles; server-only modules only.

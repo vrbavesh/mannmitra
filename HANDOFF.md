@@ -32,13 +32,13 @@ None. Step 3 has not started.
 - [ ] Upstash Redis project or approval of Supabase-counter fallback (Step 4)
 - [ ] Google Places key or OSM approval (Step 11)
 - [ ] Groq key (optional Step 19)
-- [ ] `gh` CLI + GitHub remote (push after each phase)
+- [x] GitHub remote — DONE (`origin`: `https://github.com/vrbavesh/mannmitra.git`; pushes require explicit user approval)
 - [ ] Vercel project (first deploy, after Step 8)
 - Launch gates G1–G7 (blueprint §7) block public deploy; none started.
 
 ## Key decisions
 
-- Direct mode: local git only until `gh`/remote exists; one branch per step, merge after gate.
+- GitHub remote `origin` is configured. Commit every completed step after its gate and status close-out; push only with explicit user approval.
 - **Hosted migrations applied through the Supabase connector.** Supabase assigned the canonical remote versions, and local filenames were aligned to them so future CLI migration history stays consistent: `20261019042648` through `20261019043230`.
 - Current Supabase guidance uses explicit `to authenticated` policies and `(select auth.uid())`; deprecated `auth.role()` was removed before apply. A fifth migration revokes Data API execution of trigger-only `security definer` functions and indexes all foreign keys needed for ownership reads and cascading account deletion. Security advisor is clean; fresh-index “unused” notices are expected on the empty schema.
 - The hosted RLS suite now uses unique, self-cleaning task-template fixtures and treats revoked screening writes as the expected `42501` failure. Final cleanup check: zero `rls-*` auth users, profiles, or `__rls_test_*` templates.
