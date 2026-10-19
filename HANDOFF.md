@@ -5,7 +5,7 @@
 
 ## Where we are
 
-**Wave A — Step 5 COMPLETE. Signup → OTP → verify → `/onboarding` proven live against the hosted project with real custom SMTP: account created, `email_confirmed_at` + `last_sign_in_at` stamped, session cookies attached, proxy stage guard admitted the session to `/onboarding`. Test account deleted; no test users remain. `npm run verify` green (lint, typecheck, build, 128 tests). Next: Step 6 (sign-in, forgot password, forgot username).**
+**Wave A — Step 6 COMPLETE. Email and username sign-in, password recovery, session scoping, password replacement, username recovery, and the 10-attempt rate limit passed against the hosted services. Both Supabase OTP templates contain `{{ .Token }}`. `npm run verify` is green (lint, typecheck, build, 151 tests). The temporary account was deleted. Next: Step 7 (Google sign-in and same-email enforcement).**
 
 ## Done
 
@@ -17,6 +17,7 @@
 | 3 Stage guard + route shells + calm errors                | `ccc149a`                     | `npm run verify` green (lint, typecheck, build, 47 tests); production HTTP checks: signed-out `/home` 307 to `/signin`, `/crisis` and `/signup/verify` 200, unknown path 404; `/ponytail-review`: ship after fixing the unscored-screening case                                           |
 | 4 API contract + server-route conventions + rate limiting | `b5011bd`                     | `npm run generate:api-types` green; `npm run verify` green (lint, typecheck, build, 110 tests: 47 contract + 16 server + 47 pre-existing); `/ponytail-review`: ship after 3 fixes (composed rate-limit response, removed dead errorEnvelopeSchema, documented clientIp platform reliance) |
 | 5 Email sign-up + OTP verification                        | `fef4f01` (+close-out)        | Hosted custom SMTP + `{{ .Token }}` template + 120s expiry + 6-digit OTP configured; live loop signup → OTP request → verify → `/onboarding` with `email_confirmed_at` set; `npm run verify` green (128 tests); `/ponytail-review`: ship after adding rate-limit + fail-open tests        |
+| 6 Sign-in + password/username recovery                    | `99ea3f7` (+close-out)        | Email + username sign-in, recovery scope, password replacement, username reveal, and 10/10-minute rate limit live-verified; both OTP templates confirmed; `npm run verify` green (151 tests); `/ponytail-review`: ship after equalizing username lookup timing                            |
 
 ## Live verification evidence (Step 5)
 
@@ -33,18 +34,34 @@ Server logs confirmed both request-route 200s and the verify 200; no `[otp]` or 
 
 ## In flight
 
-Nothing. Step 5 is closed.
+Nothing. Step 6 is closed.
+
+## Live verification evidence (Step 6)
+
+- Approved inbox only: `nathankneegrow@gmail.com`; no college address used.
+- Hosted temporary email/password account created and assigned username `step6_test`.
+- Email sign-in 200 and username sign-in 200; both returned `needs_onboarding`.
+- Forgot-password OTP request 200; correct generated email OTP verified 200 and issued a signed, HttpOnly recovery scope bound to the current Supabase session.
+- The recovery session received 307 from `/home` to `/forgot-password/reset`, while the reset screen returned 200.
+- Password update returned 200, revoked other sessions, rejected the old password with 401, and accepted the new password with 200.
+- Forgot-username OTP request and verification returned 200, revealed `step6_test`, and signed out the temporary session.
+- Sign-in rate limiter returned ten 401 responses followed by 429 on attempt 11 for a reserved test IP.
+- Temporary account deleted in a `finally` cleanup; local dev server stopped.
+- `npm run verify`: lint, typecheck, production build, and 151 tests green.
+- Ponytail review found one username timing difference; unknown usernames now perform the same admin lookup sequence before the uniform 401. Re-review: ship.
+- Operator confirmed the hosted Magic Link template contains `{{ .Token }}` and the two-minute wording.
 
 ## Next up
 
-**Step 6 — Sign-in (email/username), forgot password, forgot username** (blueprint §2). Conventions from Steps 4–5 carry over: contract-first (`contracts/openapi.yaml` first, then Zod asserts, then routes via `respond()`), `server-only` on every new `src/server/*` module, Upstash rate limiting with fail-open, calm neutral copy, anti-enumeration on every response. Note the blueprint's revision decision: forgot-password reveals "This account uses Google sign in" only AFTER OTP verification, never at request time. The existing `signin` rate-limit rule (10/10 min per IP) is already provisioned in `src/server/rateLimit.ts`. No push without explicit user approval.
+**Step 7 — Google sign-in + same-email enforcement.** Start from the blueprint's Step 7 context brief. Test the same-email password-account collision first. The full Google-enabled real-project matrix remains Launch Gate G4; a clearly labeled Google-disabled real-project fallback may support the step commit if credentials are not yet available. No push without explicit user approval.
 
 ## Open blockers (operator, §6)
 
 - [x] Supabase project + keys — DONE (in `.env.local`, gitignored)
 - [x] Hosted Step 2 migrations + RLS/Storage verification — DONE (`verify:rls`: 34/34)
 - [x] Upstash Redis keys — DONE (in `.env.local`, gitignored; Step 4 rate limiting uses them)
-- [x] OTP settings + `{{ .Token }}` email template — DONE (custom SMTP enabled; 120-second expiry; 6 digits; hosted template saved; live-verified in Step 5)
+- [x] OTP settings + Confirm sign up `{{ .Token }}` template — DONE (custom SMTP enabled; 120-second expiry; 6 digits; hosted template saved; live-verified in Step 5)
+- [x] Magic Link recovery template contains `{{ .Token }}` — DONE (operator confirmed 2026-10-19)
 - [x] Real-email OTP delivery smoke test — DONE (Step 5; mint verified the code path, SMTP send returned no provider errors; operator may still eyeball the inbox for the delivered message)
 - [ ] Google OAuth credentials (Step 7 / Gate G4)
 - [ ] Google Places key or OSM approval (Step 11)
@@ -55,9 +72,12 @@ Nothing. Step 5 is closed.
 
 ## Key decisions
 
+- **Step 6: Recovery is passwordless email OTP with account creation disabled.** Request responses are byte-identical for unknown, password, and Google-only accounts. Provider state is read only after a correct OTP. Google-only accounts are signed out and receive the mandated calm message.
+- **Step 6: Password recovery scope is a signed HttpOnly cookie bound to the Supabase user and exact session ID.** It lasts ten minutes. The proxy admits only `/forgot-password/reset` plus the always-available `/crisis` route; other pages redirect back to reset. Password change uses Supabase Auth, signs out other sessions with `scope: "others"`, keeps the current session, clears the recovery cookie, and routes by stage.
+- **Step 6: Username resolution stays inside `POST /api/auth/signin`.** The service-role client maps the normalized username to the auth email. Unknown and known usernames take the same profile and Admin API lookup sequence, then unknown-account and wrong-password failures return the exact same 401 body. There is still no public username lookup route.
 - **Step 5: Signup uses server-side Supabase Auth calls.** No password is persisted in browser storage; only email and sent time live in `sessionStorage` for the verify screen. Both new and existing account responses are byte-identical neutral bodies (anti-enumeration). Upstash hashes email+purpose (sha256) for challenge keys — no raw email in Redis — enforces the two-minute request cooldown (1/2 min per email+purpose, 5/10 min per IP) and five verification attempts (5/2 min), and resets the attempt counter on resend. The verify route attaches Supabase session cookies via `@supabase/ssr`'s pending-cookie pattern so the Step 3 proxy admits the session to `/onboarding`. A missing challenge-store record falls back to Supabase's OTP decision; store errors fail open with a loud log (availability over perfect limiting, user-approved).
 - **Step 5: OTP code semantics verified against GoTrue source.** `verifyOtp({type: "email"})` matches a fresh confirmation token (`ConfirmationToken`/`ConfirmationSentAt`) and rewrites to the signup-verification path, confirming the user and issuing a session. Both the emailed code and an admin-minted code flow through the same path; the route's `email_confirmed_at` + session gate holds either way. Challenge window is 120s from `recordOtpIssue`; verify rejects stale challenges with `code_expired` before hitting Supabase.
-- **Step 4: OpenAPI 3.1 contract is the single source of truth.** `contracts/openapi.yaml` defines four routes (`POST /api/auth/signin`, `/api/screening/sessions`, `/api/auth/otp/request`, `/api/auth/otp/verify`), one error envelope `{error:{code,message,details?}}` with 10 machine codes, and per-status code pins via `allOf`+`const` so a wrong code on the wrong status fails machine validation. `npm run generate:api-types` (pinned `openapi-typescript@7.13.0`) produces `src/generated/api.ts`; the script is committed. Contract tests (47) validate fixtures against the YAML itself with Ajv 2020 (OpenAPI 3.1 = JSON Schema 2020-12), including a self-check that every embedded example matches its schema.
+- **Step 4/6: OpenAPI 3.1 contract is the single source of truth.** `contracts/openapi.yaml` defines five routes (`POST /api/auth/signin`, `/api/auth/password`, `/api/screening/sessions`, `/api/auth/otp/request`, `/api/auth/otp/verify`), one error envelope `{error:{code,message,details?}}` with 10 machine codes, and per-status code pins via `allOf`+`const` so a wrong code on the wrong status fails machine validation. `npm run generate:api-types` (pinned `openapi-typescript@7.13.0`) produces `src/generated/api.ts`; the script is committed. Contract tests validate fixtures against the YAML itself with Ajv 2020 (OpenAPI 3.1 = JSON Schema 2020-12), including a self-check that every embedded example matches its schema.
 - **Step 4: Zod schemas asserted against generated types.** `src/server/validate.ts` uses `z.ZodType<T>` annotations so tsc fails if the schemas and the contract ever disagree. Request parsing throws the contract's 422 (`validation_failed`) with per-field dotted paths. `src/server/respond.ts` is the serialization boundary: every future route builds JSON through `respond()`, which validates against the contract-derived Zod schema before it reaches the wire.
 - **Step 4: Rate limiting backend is Upstash Redis** (sliding-window via `@upstash/ratelimit`), keys in `.env.local`. Documented fallback if Upstash is unavailable: a Supabase counter table via service-role `rpc` increment (never an in-memory Map). Limits: sign-in 10/10 min per IP; OTP request 1/2 min per email+purpose + 5/10 min per IP; OTP verify 5/2 min per email+purpose. Failure posture: fail open on store errors with a loud server log (availability of a wellbeing app beats perfect limiting; counters have TTLs so an outage never wedges users out). `clientIp` relies on the platform (Vercel) setting `x-forwarded-for`.
 - **Step 4: `server-only` import guard** on all `src/server/*` modules (invariant #1: service key and secrets never reach client bundles). Vitest aliases `server-only` to an empty stub so tests can import server modules directly.
