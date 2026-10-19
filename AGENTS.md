@@ -18,7 +18,7 @@ Next.js 16 (App Router, TypeScript, `src/` dir), Tailwind CSS v4, Supabase (Auth
 
 | Command | What it does |
 |---|---|
-| `npm run verify` | lint + tsc + build + test (must be green before any step is done) |
+| `npm run verify` | lint + tsc + build + unit tests + browser smoke (must be green before any step is done) |
 | `npm run dev` | dev server |
 | `npm test` / `npx vitest run` | unit/component tests |
 | `npm run lint` / `npx tsc --noEmit` | individually |

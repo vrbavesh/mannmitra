@@ -13,8 +13,7 @@ const variantClasses: Record<Variant, string> = {
     "bg-primary text-primary-foreground hover:bg-evergreen-700 focus-visible:outline-primary",
   secondary:
     "bg-surface text-foreground border border-border hover:bg-muted focus-visible:outline-primary",
-  ghost:
-    "bg-transparent text-primary hover:bg-evergreen-50 focus-visible:outline-primary",
+  ghost: "bg-transparent text-primary hover:bg-evergreen-50 focus-visible:outline-primary",
 };
 
 const sizeClasses: Record<Size, string> = {
@@ -37,7 +36,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       type={type}
       className={`inline-flex items-center justify-center gap-2 rounded-control font-semibold
-        transition-[transform,background-color,color] duration-[120ms] ease-out
+        transition-transform duration-[120ms] ease-out
         active:scale-[0.97] motion-reduce:active:scale-100
         focus-visible:outline-2 focus-visible:outline-offset-2
         disabled:pointer-events-none disabled:opacity-50

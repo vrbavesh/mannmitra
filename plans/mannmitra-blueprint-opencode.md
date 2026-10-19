@@ -203,6 +203,8 @@ Use the framework's built-in not-found/error pages (spec fix #6) styled calm —
 
 ### Step 4 — API contract + server-route conventions + rate limiting
 
+**Wave A audit execution note (2026-10-19):** Upstash is the selected and required backend for working limits. No automatic Supabase counter fallback was implemented; missing keys or Redis errors take the explicitly accepted fail-open path. The counter-table design below is an alternative backend only, not a deployment feature. `npm run verify` now includes the production browser smoke gate.
+
 **Goal:** One authoritative OpenAPI artifact for all custom server routes; generated consumer types; shared validation/error/rate-limit conventions. (contract-first + api-design + backend-patterns)
 
 **Context brief:** Most reads/writes go through the Supabase client under RLS. Custom server routes exist where the spec requires server-side power: username→email resolution folded **inside** `POST /api/auth/signin` (service key, server-only, no public lookup endpoint — §3.3), OTP verification orchestration (§3.1), server-side scoring (§14 note), and hospital finder (now Step 11 scope). contract-first rule: change the contract BEFORE implementation; one artifact, no duplicated shapes.
@@ -382,6 +384,7 @@ Use the framework's built-in not-found/error pages (spec fix #6) styled calm —
    - Tests: route contract fixtures (success + provider-error + no-key fallback), UI states (denied permission, empty results, provider 5xx → retry).
 6. `/crisis` page: helplines (14416, 112) always visible + mounted finder (same component).
 7. Retake-lock enforcement server-side (14-day rule) + middleware blocked-stage behavior test.
+8. **Wave A audit requirement:** programs and risk events are client read-only. Create them through authenticated server operations, updating the OpenAPI contract first. Check screening owner/kind, risk gate, and dates server-side. Composite database foreign keys enforce ownership; never restore direct client lifecycle writes. Apply the same server-only rule to report/program completion writes in Step 16.
 
 **Depends:** 10, 4 (contract). **Parallel:** — **Tier:** default (gate logic tested per above).
 
@@ -646,9 +649,10 @@ Routes owned here (spec routes table): **`/program`** — 30-day map of day tile
 10. Spec phase 10 "smartwatch ideas" out of scope (no design in spec) — Step 20.
 11. **`scoring_version int not null default 1` added to `screening_sessions`** (additive to §14 schema; protects against the spec's own provisional scoring key being swapped pre-launch — Step 2/10).
 12. **No public `resolve-username` endpoint** — username→email resolution is an internal function inside `POST /api/auth/signin` (spec never required a public lookup; closes an enumeration surface — Step 4/6).
-13. **Rate limiting uses Upstash Redis (Supabase-table fallback), never in-memory** — in-memory counters reset per serverless instance (Step 4).
+13. **Rate limiting uses Upstash Redis, never in-memory** — Upstash is required for working limits. The Supabase counter-table design is an unimplemented alternative; outages/missing keys use the accepted fail-open policy (clarified by the Wave A audit).
 14. **Forgot-password reveals "This account uses Google sign in" only AFTER OTP verification** — spec §3.5 implied showing it at request time, which would leak which emails exist (Step 6).
 15. **Chatbot defaults to Groq** — spec §Stack and §15 privacy wording edited to "Gemini or Groq API" (operator edit, both occurrences) so either provider is allowed: `GROQ_API_KEY`, OpenAI-compatible streaming completions, pinned Llama model — lower latency for SSE, simpler server-only key handling. Same crisis-prompt and security requirements unchanged (Steps 1, 18, 19).
+16. **Wave A audit, 2026-10-19:** programs, reports, and risk events are read-only to clients, with server-only lifecycle writers. All program/session references enforce matching owners using composite foreign keys. This extends the original screening protection to prevent forged lifecycle state and cross-account links.
 
 ---
 

@@ -8,7 +8,29 @@ What this repo does: MannMitra is a wellbeing screening and self-help app. Wave 
 
 Scope: Steps 1–4 as they exist in the current repository, including changes to those foundations made during Steps 5–6. This is a retrospective audit, not an assertion that every finding existed at the end of Step 4. No earlier Wave A audit was found in the project records.
 
-## Must fix
+## Remediation closeout, 2026-10-19
+
+All seven findings below are resolved. They remain in this report as the original audit evidence.
+
+| Finding | Resolution | Evidence |
+| --- | --- | --- |
+| 1 Cross-owner references | Composite foreign keys include `user_id` for all nine program/session references. | Hosted inserts and updates with mismatched owners return `23503`, including service-role writes. |
+| 2 Forged lifecycle state | Programs, reports, and risk events have SELECT-only policies and revoked client mutation privileges. | Own and cross-user client mutations return `42501`; normal owned reads still work. |
+| 3 Input contrast | Dedicated input border `#7d7d76` and placeholder `#5f5f59`; decorative borders stay separate. | Production Chromium checks rendered border and focus contrast >=3:1 and placeholder contrast >=4.5:1. |
+| 4 Broken browser gate | Entry smoke follows both real links; browser tests now run inside `npm run verify` against the production build. | All three browser checks pass, including mobile navigation and reduced motion. |
+| 5 Local Auth drift | Eight-character password minimum, confirmation on, six-digit OTP, 120-second expiry/cooldown, both token templates. Removed the missing seed-file reference. | TOML parsed successfully; values and both template paths/token contents checked. No local Docker/CLI runtime is installed, so local email delivery was not exercised. |
+| 6 False fallback instructions | Environment example, README, module comments, handoff, and blueprint execution note now identify Upstash as required and fail-open behavior explicitly. | No automatic Supabase counter fallback is claimed by current setup instructions. |
+| 7 Motion rules | Progress uses `scaleX` at 200ms; buttons and entry links transition only transform properties. | Shared component tests pass; rendered button transitions and reduced-motion behavior pass in Chromium. |
+
+Migration `20261019123332_enforce_record_ownership_and_server_lifecycle.sql` was applied to the hosted project through the connector and saved locally with Supabase's canonical version. The hosted project had no user data before the migration; all constraints validated without data repair.
+
+Verification: `npm run verify` exited 0 (lint, typecheck, production build, 151 unit/contract tests, 3 production browser checks). `npm run verify:rls` passed all 58 hosted tests, including mood preservation on program deletion and complete account cascades. Hosted cleanup checks found zero test users, templates, and storage objects. Lifecycle regression tests were first observed failing against the old hosted rules.
+
+Ponytail diff review: traced shared component callers, the stage guard's program reads, Supabase grants/policies/foreign keys, local Auth settings, setup instructions, and test lifecycle/cleanup for a shared multi-user deployment. No unresolved Must-fix or Should-fix findings in this remediation. No dependency or framework was added. Verdict: Ship. The Wave A audit gate is closed for this audited scope.
+
+Residual limits: no sustained load test, full assistive-technology walkthrough, or local Supabase email runtime test. A fresh hosted security advisor reports leaked-password protection disabled; this is a separate Auth hardening item for Step 18, not a recurrence of the seven findings. See [Supabase remediation guidance](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). Database ownership constraints and grants follow [PostgreSQL foreign-key semantics](https://www.postgresql.org/docs/17/ddl-constraints.html) and [Supabase's grant plus policy model](https://supabase.com/docs/guides/database/postgres/row-level-security).
+
+## Original Must fix findings (all resolved above)
 
 1. **Ownership checks do not protect links between records** (`supabase/migrations/20261019042658_rls_policies.sql:22`, `supabase/migrations/20261019042648_init_schema.sql:77`, `:103`, `:172`).
    - **What this is:** Row level security (RLS) decides which rows a signed-in user may read or write. Foreign keys connect programs, screenings, and user content.
@@ -28,7 +50,7 @@ Scope: Steps 1–4 as they exist in the current repository, including changes to
    - **Fix:** Use darker dedicated input-border and placeholder tokens that meet these ratios. Keep decorative card borders independent; verify default, error, and focus states.
    - **If we skip it:** Users with low vision can struggle to identify fields and read their hints. The foundation cannot be called WCAG AA compliant on controls.
 
-## Should fix
+## Original Should fix findings (all resolved above)
 
 4. **The browser smoke test is stale and excluded from the green gate** (`e2e/smoke.spec.ts:6`, `package.json`).
    - **What this is:** The only Playwright test checks the original scaffold email field and Continue button.
@@ -67,6 +89,6 @@ Scope: Steps 1–4 as they exist in the current repository, including changes to
 - No hostile rows were inserted into the hosted project during either audit. The earlier 34-test hosted RLS result remains historical evidence, not a fresh run, and lacks the mixed-owner/lifecycle cases described above. The 151-test verification and stale browser-smoke failure above were run on identical application code in the immediately preceding audit and were not needlessly repeated.
 - Known accepted choices, including fail-open rate limiting during an outage and explicit local-date writes for moods, are not counted as new findings. Planned route shells and unbuilt later features are not counted as Wave A defects.
 
-Verdict: Fix first. Wave A's retrospective audit gate is open until findings 1–3 are resolved and the remaining findings are triaged. Do not describe Wave A as audit-passed.
+Original verdict: Fix first. Superseded by the verified remediation closeout above.
 
-Not checked: A fresh hosted RLS run, malicious writes against real accounts, hosted Auth dashboard settings, sustained concurrency/load, dependency advisory refresh, full keyboard/screen-reader testing, and later feature implementations. Hosted catalog drift was checked for the reported ownership/lifecycle findings. This audit changes no application code or hosted settings.
+Original audit limits: A fresh hosted RLS run, malicious writes against real accounts, hosted Auth dashboard settings, sustained concurrency/load, dependency advisory refresh, full keyboard/screen-reader testing, and later feature implementations were not checked at audit time. Hosted RLS regression tests were subsequently run during remediation as described above.

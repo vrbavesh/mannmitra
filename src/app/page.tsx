@@ -12,13 +12,13 @@ export default function Home() {
         <div className="flex flex-col gap-3">
           <Link
             href="/signup"
-            className="inline-flex h-12 items-center justify-center rounded-control bg-primary px-7 text-base font-semibold text-primary-foreground transition-[transform,background-color] duration-[120ms] ease-out hover:bg-evergreen-700 active:scale-[0.97] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="inline-flex h-12 items-center justify-center rounded-control bg-primary px-7 text-base font-semibold text-primary-foreground transition-transform duration-[120ms] ease-out hover:bg-evergreen-700 active:scale-[0.97] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Create an account
           </Link>
           <Link
             href="/signin"
-            className="inline-flex h-12 items-center justify-center rounded-control border border-border bg-surface px-7 text-base font-semibold text-foreground transition-[transform,background-color] duration-[120ms] ease-out hover:bg-muted active:scale-[0.97] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            className="inline-flex h-12 items-center justify-center rounded-control border border-border bg-surface px-7 text-base font-semibold text-foreground transition-transform duration-[120ms] ease-out hover:bg-muted active:scale-[0.97] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
             Sign in
           </Link>

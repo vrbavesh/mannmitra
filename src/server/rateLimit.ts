@@ -8,11 +8,8 @@ import { Redis } from "@upstash/redis";
  * Backend (Step 4 choice, per blueprint): **Upstash Redis** via
  * `@upstash/ratelimit` sliding-window counters, using the REST URL + token in
  * `.env.local` (`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`).
- * Documented fallback if Upstash is ever unavailable: a Supabase counter
- * table (key, window_start, count) written via the service role with an
- * atomic `rpc` increment — never an in-memory Map (it resets per lambda and
- * does not hold under deploy). The exported surface (`checkRateLimit`) keeps
- * the shape swap-compatible.
+ * Upstash keys are required for working limits. There is no second backend;
+ * missing keys or Redis outages take the fail-open path below.
  *
  * Limits (spec): sign-in 10 attempts / 10 min per IP (§3.3); OTP request
  * 1 per 2 min per email+purpose (resend cooldown, §3.1) plus 5 / 10 min per

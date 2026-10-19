@@ -59,6 +59,8 @@
   --color-accent: #e08f21; /* amber-500 */
   --color-accent-foreground: #1f1f1d;
   --color-border: #d5d1c2; /* bone-400 */
+  --color-input-border: #7d7d76; /* 4:1 against bone surfaces */
+  --color-placeholder: #5f5f59; /* neutral-600, normal-text contrast */
   --color-muted: #f2f0e8; /* bone-200 */
   --color-muted-foreground: #5f5f59; /* neutral-600 */
   --color-danger-soft: #9c5713; /* amber-700 — calm warning, never a red alarm */

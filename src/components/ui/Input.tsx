@@ -16,11 +16,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
 ) {
   const autoId = useId();
   const inputId = id ?? autoId;
-  const describedBy = error
-    ? `${inputId}-error`
-    : helper
-      ? `${inputId}-helper`
-      : undefined;
+  const describedBy = error ? `${inputId}-error` : helper ? `${inputId}-helper` : undefined;
 
   return (
     <div className="flex w-full flex-col gap-1.5">
@@ -33,10 +29,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className={`h-11 w-full rounded-card border bg-surface px-4 text-base
-          placeholder:text-neutral-400
+          placeholder:text-placeholder
           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary
           disabled:opacity-50
-          ${error ? "border-danger-soft" : "border-border"} ${className}`}
+          ${error ? "border-danger-soft" : "border-input-border"} ${className}`}
         {...props}
       />
       {error ? (

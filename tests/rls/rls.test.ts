@@ -37,6 +37,8 @@ let uidA = "";
 let uidB = "";
 let sessionIdA = "";
 let sessionIdB = "";
+let programA = "";
+let programB = "";
 
 /** Seed one row per table for a given user, via service role (bypasses RLS by design). */
 async function seedUserRows(uid: string, programId: string, sessionId: string) {
@@ -82,9 +84,9 @@ beforeAll(async () => {
     password: PASSWORD,
     email_confirm: true,
   });
+  uidA = a.data.user?.id ?? "";
+  uidB = b.data.user?.id ?? "";
   if (a.error || b.error) throw new Error(`user create: ${a.error?.message} / ${b.error?.message}`);
-  uidA = a.data.user!.id;
-  uidB = b.data.user!.id;
 
   userA = createClient(URL, ANON, { auth: { persistSession: false } });
   userB = createClient(URL, ANON, { auth: { persistSession: false } });
@@ -97,8 +99,8 @@ beforeAll(async () => {
   sessionIdA = `00000000-0000-4000-8000-${runHex.slice(0, 11)}1`;
   sessionIdB = `00000000-0000-4000-8000-${runHex.slice(0, 11)}2`;
 
-  const programA = crypto.randomUUID();
-  const programB = crypto.randomUUID();
+  programA = crypto.randomUUID();
+  programB = crypto.randomUUID();
   await seedUserRows(uidA, programA, sessionIdA);
   await seedUserRows(uidB, programB, sessionIdB);
 
@@ -114,6 +116,11 @@ beforeAll(async () => {
 
 afterAll(async () => {
   const errors: string[] = [];
+  const paths = [uidA, uidB].filter(Boolean).map((id) => `${id}/rls-${RUN}.txt`);
+  if (paths.length) {
+    const removed = await admin.storage.from("drawings").remove(paths);
+    if (removed.error) errors.push(`storage: ${removed.error.message}`);
+  }
   const template = await admin.from("task_templates").delete().eq("track", TEMPLATE_TRACK);
   if (template.error) errors.push(`template: ${template.error.message}`);
   if (uidA) {
@@ -123,6 +130,15 @@ afterAll(async () => {
   if (uidB) {
     const deleted = await admin.auth.admin.deleteUser(uidB);
     if (deleted.error) errors.push(`user B: ${deleted.error.message}`);
+  }
+  for (const table of USER_TABLES) {
+    const ids = [uidA, uidB].filter(Boolean);
+    if (!ids.length) break;
+    const remaining = await admin
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .in(table === "profiles" ? "id" : "user_id", ids);
+    if (remaining.error || remaining.count !== 0) errors.push(`cascade cleanup: ${table}`);
   }
   if (errors.length) throw new Error(`cleanup: ${errors.join(" / ")}`);
 });
@@ -178,10 +194,10 @@ describe("(a) cross-user: A is blind to B's rows on every table", () => {
       .update({ status: "abandoned" })
       .eq("id", bRow.data!.id)
       .select();
-    expect(up.data).toHaveLength(0);
+    expect(up.error?.code).toBe("42501");
 
     const del = await userA.from("programs").delete().eq("id", bRow.data!.id);
-    expect(del.error).toBeNull();
+    expect(del.error?.code).toBe("42501");
     const still = await admin.from("programs").select("id").eq("id", bRow.data!.id);
     expect(still.data).toHaveLength(1);
 
@@ -190,7 +206,125 @@ describe("(a) cross-user: A is blind to B's rows on every table", () => {
       track: "anxiety",
       start_date: "2026-10-19",
     });
-    expect(ins.error).not.toBeNull(); // WITH CHECK fails
+    expect(ins.error?.code).toBe("42501");
+  });
+});
+
+describe("server-owned lifecycle records", () => {
+  const inserts: Record<string, () => Record<string, unknown>> = {
+    programs: () => ({
+      user_id: uidA,
+      track: "anxiety",
+      start_date: "2020-01-01",
+      status: "abandoned",
+    }),
+    reports: () => ({ user_id: uidA, program_id: programA, summary: {} }),
+    risk_events: () => ({ user_id: uidA, session_id: sessionIdA, reason: "safety_answer" }),
+  };
+  for (const table of Object.keys(inserts)) {
+    it(`${table}: own insert is denied`, async () => {
+      expect((await userA.from(table).insert(inserts[table]())).error?.code).toBe("42501");
+    });
+    it(`${table}: own update is denied`, async () => {
+      const patch =
+        table === "programs"
+          ? { start_date: "2020-01-01", post_session_id: sessionIdA }
+          : table === "reports"
+            ? { summary: { forged: true } }
+            : { reason: "severe_score" };
+      expect((await userA.from(table).update(patch).eq("user_id", uidA)).error?.code).toBe("42501");
+    });
+    it(`${table}: own delete is denied`, async () => {
+      expect((await userA.from(table).delete().eq("user_id", uidA)).error?.code).toBe("42501");
+    });
+  }
+});
+
+describe("linked rows must have the same owner, including privileged server writes", () => {
+  const cases = [
+    {
+      table: "programs",
+      field: "pre_session_id",
+      fields: { track: "anxiety", start_date: "2026-10-19", status: "abandoned" },
+    },
+    {
+      table: "programs",
+      field: "post_session_id",
+      fields: { track: "anxiety", start_date: "2026-10-19", status: "abandoned" },
+    },
+    { table: "risk_events", field: "session_id", fields: { reason: "safety_answer" } },
+    { table: "task_completions", field: "program_id", fields: { day_no: 2 } },
+    { table: "mood_entries", field: "program_id", fields: { mood: 5, entry_date: "2026-10-19" } },
+    {
+      table: "journal_entries",
+      field: "program_id",
+      fields: { kind: "free", content: "ownership test" },
+    },
+    { table: "thought_records", field: "program_id", fields: { situation: "ownership test" } },
+    { table: "drawings", field: "program_id", fields: { storage_path: "ownership-test.png" } },
+    { table: "reports", field: "program_id", fields: { summary: {} } },
+  ];
+  it.each(cases)(
+    "$table / $field rejects cross-owner inserts and updates",
+    async ({ table, field, fields }) => {
+      const target = field === "program_id" ? programB : sessionIdB;
+      const inserted = await admin
+        .from(table)
+        .insert({ ...fields, user_id: uidA, [field]: target });
+      expect(inserted.error?.code).toBe("23503");
+      const own = await admin.from(table).select("id").eq("user_id", uidA).limit(1).single();
+      expect(own.error).toBeNull();
+      const updated = await admin
+        .from(table)
+        .update({ [field]: target, ...(table === "task_completions" ? { day_no: 2 } : {}) })
+        .eq("id", own.data!.id);
+      expect(updated.error?.code).toBe("23503");
+    },
+  );
+
+  it.each(cases.filter(({ table }) => !["programs", "risk_events", "reports"].includes(table)))(
+    "$table also rejects cross-owner inserts from an authenticated client",
+    async ({ table, fields }) => {
+      const result = await userA
+        .from(table)
+        .insert({ ...fields, user_id: uidA, program_id: programB });
+      expect(result.error?.code).toBe("23503");
+    },
+  );
+
+  it("program deletion preserves moods and their owners, and cascades journal rows", async () => {
+    const programId = crypto.randomUUID();
+    const program = await admin.from("programs").insert({
+      id: programId,
+      user_id: uidA,
+      track: "anxiety",
+      start_date: "2026-10-19",
+      status: "abandoned",
+    });
+    expect(program.error).toBeNull();
+    const mood = await userA
+      .from("mood_entries")
+      .insert({ user_id: uidA, program_id: programId, entry_date: "2026-10-19", mood: 7 })
+      .select("id")
+      .single();
+    expect(mood.error).toBeNull();
+    const journal = await userA
+      .from("journal_entries")
+      .insert({ user_id: uidA, program_id: programId, kind: "free", content: "cascade test" })
+      .select("id")
+      .single();
+    expect(journal.error).toBeNull();
+    expect((await admin.from("programs").delete().eq("id", programId)).error).toBeNull();
+    const kept = await userA
+      .from("mood_entries")
+      .select("user_id,program_id")
+      .eq("id", mood.data!.id)
+      .single();
+    expect(kept.error).toBeNull();
+    expect(kept.data).toEqual({ user_id: uidA, program_id: null });
+    expect(
+      (await userA.from("journal_entries").select("id").eq("id", journal.data!.id)).data,
+    ).toEqual([]);
   });
 });
 

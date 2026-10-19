@@ -9,7 +9,7 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "npm run dev",
+    command: "node node_modules/next/dist/bin/next start",
     port: 3000,
     reuseExistingServer: !process.env.CI,
   },
