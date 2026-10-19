@@ -32,10 +32,39 @@ Link** template must also contain `{{ .Token }}` and the same two-minute
 wording. The operator confirmed this hosted template on 2026-10-19. Use only
 the user-approved test inbox recorded in `HANDOFF.md`.
 
-## Google provider
+## Google provider (Step 7, spec §3.4)
 
-- Enabled by operator (Step 1 spec §3.1): Google OAuth client ID + secret.
-- Same-email policy and real-project test belong to Step 7.
+Hosted state checked 2026-10-19: **disabled**. `GET /auth/v1/settings` returns
+`external.google: false` and `GET /auth/v1/authorize?provider=google` returns
+`400 Unsupported provider: provider is not enabled`. Client ID and secret in
+`.env.local` are only reference copies; the app never reads them.
+
+Operator checklist before the Step 7 live matrix can run:
+
+1. **Supabase Dashboard → Authentication → Providers → Google**: enable it and
+   paste the OAuth client ID + secret.
+2. **Google Cloud Console → OAuth client**: add the authorized redirect URI
+   `https://rgbqzsivegyijacmrfqi.supabase.co/auth/v1/callback`. If the consent
+   screen is in testing mode, add the approved test inbox as a test user.
+3. **Supabase Dashboard → Authentication → URL Configuration**: keep the Site
+   URL in place and allow the app callbacks
+   `http://localhost:3000/api/auth/callback` (development) and
+   `https://<production-host>/api/auth/callback`.
+4. **Supabase Dashboard → Authentication → Settings → Manual linking**:
+   enable it. GoTrue gates `DELETE /user/identities/{id}` behind
+   `security.manual_linking_enabled` (`requireManualLinkingEnabled`). Without
+   it the same-email audit still blocks the sign-in and ends the session, but
+   it cannot remove the Google identity from the password account.
+
+### Same-email rule
+
+Supabase Auth links a verified Google email to an existing account with the
+same email **before** the app callback (`models.DetermineAccountLinking`
+returns `LinkAccount` for one matching user). The app cannot prevent the merge,
+so `GET /api/auth/callback` audits the linked identities afterwards:
+`src/server/googleIdentity.ts` removes the Google identity and ends the
+session, and the callback route never attaches session cookies on that path.
+The user lands on `/signin?notice=google_conflict` with the exact spec copy.
 
 ## Unverified-account cleanup
 

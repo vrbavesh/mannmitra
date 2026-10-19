@@ -14,7 +14,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "verify:rls": "vitest run --config vitest.rls.config.mts",
-    "generate:api-types": "openapi-typescript contracts/openapi.yaml -o src/generated/api.ts",
+    "generate:api-types": "openapi-typescript contracts/openapi.yaml -o src/generated/api.ts && prettier --write src/generated/api.ts",
     "verify": "npm run lint && npm run typecheck && npm run build && npm test && npm run test:e2e"
   },
   "dependencies": {

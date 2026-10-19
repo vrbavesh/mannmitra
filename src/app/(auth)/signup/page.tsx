@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { GoogleButton, OrDivider } from "@/components/auth/GoogleButton";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -89,6 +90,8 @@ export default function SignupPage() {
               Your answers stay connected to your account, so you can come back anytime.
             </p>
           </div>
+          <GoogleButton />
+          <OrDivider />
           <form onSubmit={submit} className="space-y-5">
             <Input
               label="Email address"

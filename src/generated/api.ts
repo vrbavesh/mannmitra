@@ -24,6 +24,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/auth/google": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Start Google sign-up or sign-in (PKCE)
+     * @description Browser navigation endpoint. Builds the Supabase OAuth URL for the Google provider, stores the PKCE verifier in an HttpOnly cookie, and redirects to Google. The return target is fixed at /api/auth/callback on this origin; nothing from the request can change it. On a configuration failure the user is returned to /signin with a calm notice instead of a raw error body.
+     */
+    get: operations["startGoogleSignIn"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/auth/callback": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Complete Google OAuth and enforce the same-email rule
+     * @description Exchanges the PKCE code for a session, then audits linked identities (spec 3.4). A Google callback that lands on an account which already has an email (password) identity is never accepted: the Google identity is unlinked, the session is ended server-side (best effort; a failed sign-out is logged as a code), and NO session cookie is issued on any outcome of that path. The user is sent to /signin?notice=google_conflict with the exact spec copy. A new Google user is sent to /home and the stage guard routes to /onboarding; a returning Google user is routed by the stage guard. Provider cancellation or a failed exchange lands on /signin with a calm notice. Automatic same-email linking happens in Supabase Auth before this route runs, which is why the audit is mandatory rather than optional.
+     */
+    get: operations["completeGoogleSignIn"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/auth/password": {
     parameters: {
       query?: never;
@@ -526,6 +566,55 @@ export interface operations {
       422: components["responses"]["ValidationFailed"];
       429: components["responses"]["RateLimited"];
       500: components["responses"]["InternalError"];
+    };
+  };
+  startGoogleSignIn: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Redirect to Google's consent screen, or back to /signin with a notice query parameter when the provider cannot be started. */
+      302: {
+        headers: {
+          /** @description Google authorize URL, or /signin?notice=google_unavailable. */
+          Location?: string;
+          /** @description PKCE verifier cookie (HttpOnly, Secure in production, SameSite=Lax). */
+          "Set-Cookie"?: string;
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  completeGoogleSignIn: {
+    parameters: {
+      query?: {
+        /** @description PKCE authorization code issued by Supabase Auth. */
+        code?: string;
+        /** @description Provider error code when the user cancels at Google. */
+        error?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Redirect into the app (/home or the stage destination) or back to /signin with a notice query parameter. */
+      302: {
+        headers: {
+          /** @description App destination, or /signin?notice=google_conflict| google_cancelled|google_failed. */
+          Location?: string;
+          /** @description Supabase session cookies on success. Never attached on the same-email conflict path; the session is ended first. */
+          "Set-Cookie"?: string;
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
   };
   updatePassword: {

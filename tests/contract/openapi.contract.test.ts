@@ -94,12 +94,23 @@ const VALIDATION_422 = {
 describe("contract: route surface", () => {
   it("documents exactly the custom server routes", () => {
     expect(Object.keys(doc.paths as object).sort()).toEqual([
+      "/api/auth/callback",
+      "/api/auth/google",
       "/api/auth/otp/request",
       "/api/auth/otp/verify",
       "/api/auth/password",
       "/api/auth/signin",
       "/api/screening/sessions",
     ]);
+  });
+
+  it("documents the Google OAuth pair as redirect-only routes", () => {
+    for (const pathKey of ["/api/auth/google", "/api/auth/callback"]) {
+      const responses = paths[pathKey].get.responses;
+      expect(Object.keys(responses)).toEqual(["302"]);
+      expect(responses["302"].headers).toHaveProperty("Location");
+      expect(responses["302"].headers).toHaveProperty("Set-Cookie");
+    }
   });
 
   it("exposes no username-lookup route (enumeration surface stays zero)", () => {
