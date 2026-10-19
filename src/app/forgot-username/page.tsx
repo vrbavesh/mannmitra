@@ -1,5 +1,5 @@
-import { RouteShell } from "@/components/RouteShell";
+import { RecoveryFlow } from "@/components/auth/RecoveryFlow";
 
-export default function forgotusernamePage() {
-  return <RouteShell title="Find your username" description="We can help you remember your username." />;
+export default function ForgotUsernamePage() {
+  return <RecoveryFlow purpose="forgot_username" />;
 }

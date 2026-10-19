@@ -75,14 +75,39 @@ const destination: Record<Stage, string> = {
   completed: "/home",
 };
 
+export function pathForStage(stage: Stage): string {
+  return destination[stage];
+}
+
 export function isPublicRoute(path: string): boolean {
-  return ["/", "/crisis", "/privacy", "/terms", "/signin", "/signup", "/signup/verify", "/forgot-password", "/forgot-username"].includes(path);
+  return [
+    "/",
+    "/crisis",
+    "/privacy",
+    "/terms",
+    "/signin",
+    "/signup",
+    "/signup/verify",
+    "/forgot-password",
+    "/forgot-username",
+  ].includes(path);
 }
 
 export function isAppRoute(path: string): boolean {
-  return ["/onboarding", "/pretest", "/pretest/result", "/home", "/program", "/progress", "/posttest", "/settings"].includes(path)
-    || /^\/program\/day\/\d+$/.test(path)
-    || /^\/report\/[^/]+$/.test(path);
+  return (
+    [
+      "/onboarding",
+      "/pretest",
+      "/pretest/result",
+      "/home",
+      "/program",
+      "/progress",
+      "/posttest",
+      "/settings",
+    ].includes(path) ||
+    /^\/program\/day\/\d+$/.test(path) ||
+    /^\/report\/[^/]+$/.test(path)
+  );
 }
 
 export function routeForStage(stage: Stage, path: string): string | null {
@@ -90,9 +115,13 @@ export function routeForStage(stage: Stage, path: string): string | null {
   const allowed =
     (stage === "needs_onboarding" && path === "/onboarding") ||
     (stage === "needs_pretest" && path === "/pretest") ||
-    ((stage === "blocked" || stage === "awaiting_start") && (path === "/pretest/result" || path === "/settings")) ||
-    (stage === "active" && (["/home", "/program", "/progress", "/settings"].includes(path) || /^\/program\/day\/\d+$/.test(path))) ||
+    ((stage === "blocked" || stage === "awaiting_start") &&
+      (path === "/pretest/result" || path === "/settings")) ||
+    (stage === "active" &&
+      (["/home", "/program", "/progress", "/settings"].includes(path) ||
+        /^\/program\/day\/\d+$/.test(path))) ||
     (stage === "needs_posttest" && path === "/posttest") ||
-    (stage === "completed" && (["/home", "/settings"].includes(path) || /^\/report\/[^/]+$/.test(path)));
+    (stage === "completed" &&
+      (["/home", "/settings"].includes(path) || /^\/report\/[^/]+$/.test(path)));
   return allowed ? null : destination[stage];
 }

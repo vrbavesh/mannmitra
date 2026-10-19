@@ -3,24 +3,45 @@ import { NextRequest } from "next/server";
 import { POST as requestCode } from "@/app/api/auth/otp/request/route";
 import { POST as verifyCode } from "@/app/api/auth/otp/verify/route";
 
-const { signUp, resend, verifyOtp, checkRateLimit, resetRateLimit, otpIssuedAt, recordOtpIssue } =
-  vi.hoisted(() => ({
-    signUp: vi.fn(),
-    resend: vi.fn(),
-    verifyOtp: vi.fn(),
-    checkRateLimit: vi.fn(),
-    resetRateLimit: vi.fn(),
-    otpIssuedAt: vi.fn(),
-    recordOtpIssue: vi.fn(),
-  }));
+const {
+  signUp,
+  resend,
+  signInWithOtp,
+  verifyOtp,
+  signOut,
+  profile,
+  checkRateLimit,
+  resetRateLimit,
+  otpIssuedAt,
+  recordOtpIssue,
+  createRecoveryScope,
+  setRecoveryCookie,
+} = vi.hoisted(() => ({
+  signUp: vi.fn(),
+  resend: vi.fn(),
+  signInWithOtp: vi.fn(),
+  verifyOtp: vi.fn(),
+  signOut: vi.fn(),
+  profile: vi.fn(),
+  checkRateLimit: vi.fn(),
+  resetRateLimit: vi.fn(),
+  otpIssuedAt: vi.fn(),
+  recordOtpIssue: vi.fn(),
+  createRecoveryScope: vi.fn(),
+  setRecoveryCookie: vi.fn(),
+}));
 
 vi.mock("@/server/authClient", () => ({
-  signupClient: () => ({ auth: { signUp, resend } }),
+  signupClient: () => ({ auth: { signUp, resend, signInWithOtp } }),
+  adminClient: () => ({
+    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: profile }) }) }),
+  }),
   verificationClient: () => ({
-    client: { auth: { verifyOtp } },
+    client: { auth: { verifyOtp, signOut } },
     attachCookies: (response: Response) => response,
   }),
 }));
+vi.mock("@/server/recoveryScope", () => ({ createRecoveryScope, setRecoveryCookie }));
 vi.mock("@/server/rateLimit", () => ({
   clientIp: () => "203.0.113.9",
   checkRateLimit,
@@ -55,6 +76,13 @@ describe("signup OTP routes", () => {
     otpIssuedAt.mockResolvedValue(Date.now());
     signUp.mockResolvedValue({ error: null });
     resend.mockResolvedValue({ error: null });
+    signInWithOtp.mockResolvedValue({ error: null });
+    signOut.mockResolvedValue({ error: null });
+    profile.mockResolvedValue({
+      data: { username: "river_otter", auth_provider: "email" },
+      error: null,
+    });
+    createRecoveryScope.mockReturnValue("signed-recovery-scope");
   });
 
   it("rate-limits a second request from the same email without touching Supabase", async () => {
@@ -80,15 +108,13 @@ describe("signup OTP routes", () => {
   });
 
   it("rate-limits a burst from one IP even when each email is fresh", async () => {
-    checkRateLimit
-      .mockResolvedValueOnce(allowed())
-      .mockResolvedValueOnce({
-        ok: false,
-        remaining: 0,
-        limit: 5,
-        retryAfterSec: 60,
-        resetUnixSec: 1_000_000,
-      });
+    checkRateLimit.mockResolvedValueOnce(allowed()).mockResolvedValueOnce({
+      ok: false,
+      remaining: 0,
+      limit: 5,
+      retryAfterSec: 60,
+      resetUnixSec: 1_000_000,
+    });
     const response = await requestCode(
       post("/api/auth/otp/request", {
         email: "river@example.com",
@@ -202,5 +228,92 @@ describe("signup OTP routes", () => {
       token: "123456",
       type: "email",
     });
+  });
+
+  it("returns the same pre-OTP body for unknown, password, and Google-only accounts", async () => {
+    const input = { email: "river@example.com", purpose: "forgot_password" };
+    const bodies: string[] = [];
+    for (const code of ["user_not_found", null, "provider_google"]) {
+      signInWithOtp.mockResolvedValueOnce({ error: code ? { code } : null });
+      const response = await requestCode(post("/api/auth/otp/request", input));
+      expect(response.status).toBe(200);
+      bodies.push(await response.text());
+    }
+    expect(new Set(bodies)).toEqual(new Set(['{"ok":true}']));
+    expect(signInWithOtp).toHaveBeenCalledWith({
+      email: "river@example.com",
+      options: { shouldCreateUser: false },
+    });
+  });
+
+  it("reveals Google-only status only after a correct forgot-password code", async () => {
+    verifyOtp.mockResolvedValue({
+      error: null,
+      data: {
+        user: { id: "user-id", email_confirmed_at: new Date().toISOString() },
+        session: { access_token: "token" },
+      },
+    });
+    profile.mockResolvedValue({
+      data: { username: "river_otter", auth_provider: "google" },
+      error: null,
+    });
+    const response = await verifyCode(
+      post("/api/auth/otp/verify", {
+        email: "river@example.com",
+        code: "123456",
+        purpose: "forgot_password",
+      }),
+    );
+    expect(response.status).toBe(409);
+    expect((await response.json()).error.code).toBe("google_only");
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(createRecoveryScope).not.toHaveBeenCalled();
+  });
+
+  it("creates a recovery scope after a correct password-account code", async () => {
+    verifyOtp.mockResolvedValue({
+      error: null,
+      data: {
+        user: { id: "user-id", email_confirmed_at: new Date().toISOString() },
+        session: { access_token: "token" },
+      },
+    });
+    const response = await verifyCode(
+      post("/api/auth/otp/verify", {
+        email: "river@example.com",
+        code: "123456",
+        purpose: "forgot_password",
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      status: "verified",
+      redirect: "/forgot-password/reset",
+    });
+    expect(setRecoveryCookie).toHaveBeenCalledWith(response, "signed-recovery-scope");
+  });
+
+  it("reveals the username and ends the temporary session", async () => {
+    verifyOtp.mockResolvedValue({
+      error: null,
+      data: {
+        user: { id: "user-id", email_confirmed_at: new Date().toISOString() },
+        session: { access_token: "token" },
+      },
+    });
+    const response = await verifyCode(
+      post("/api/auth/otp/verify", {
+        email: "river@example.com",
+        code: "123456",
+        purpose: "forgot_username",
+      }),
+    );
+    expect(await response.json()).toEqual({
+      status: "verified",
+      redirect: "/forgot-username",
+      revealed_username: "river_otter",
+    });
+    expect(signOut).toHaveBeenCalledWith({ scope: "local" });
   });
 });

@@ -24,6 +24,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/auth/password": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Set a new password from a verified recovery session
+     * @description Requires the short-lived recovery scope created by a correct forgot_password OTP. The scope is bound to the current Supabase session and cannot open any other app screen. Updates the password, signs out other sessions, keeps the current session active, and returns the user's stage.
+     */
+    post: operations["updatePassword"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/screening/sessions": {
     parameters: {
       query?: never;
@@ -141,6 +161,9 @@ export interface components {
     };
     SigninResponse: {
       stage: components["schemas"]["Stage"];
+    };
+    PasswordUpdateRequest: {
+      password: string;
     };
     ScreeningSubmitRequest: {
       /** @description 18 MHI-18 raw answers in item order, each 1 (all of the time) to 6 (none of the time). */
@@ -502,6 +525,34 @@ export interface operations {
       403: components["responses"]["EmailUnverified"];
       422: components["responses"]["ValidationFailed"];
       429: components["responses"]["RateLimited"];
+      500: components["responses"]["InternalError"];
+    };
+  };
+  updatePassword: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PasswordUpdateRequest"];
+      };
+    };
+    responses: {
+      /** @description Password changed; other sessions revoked. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SigninResponse"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      410: components["responses"]["CodeExpired"];
+      422: components["responses"]["ValidationFailed"];
       500: components["responses"]["InternalError"];
     };
   };

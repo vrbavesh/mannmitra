@@ -58,6 +58,10 @@ export const signinResponseSchema: z.ZodType<Schemas["SigninResponse"]> = z.obje
   stage: stageSchema,
 });
 
+export const passwordUpdateSchema: z.ZodType<Schemas["PasswordUpdateRequest"]> = z.object({
+  password: z.string().min(8).max(128),
+});
+
 export const screeningSubmitResponseSchema: z.ZodType<Schemas["ScreeningSubmitResponse"]> =
   z.object({
     session_id: z.uuid(),

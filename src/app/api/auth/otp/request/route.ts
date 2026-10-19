@@ -9,9 +9,9 @@ import { otpRequestResponseSchema, otpRequestSchema, parseBody } from "@/server/
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body = parseBody(otpRequestSchema, await request.json().catch(() => undefined));
-    if (body.purpose !== "signup") {
+    if (body.purpose !== "signup" && body.password) {
       throw errors.validationFailed([
-        { field: "purpose", message: "This code flow is not available yet." },
+        { field: "password", message: "Password is only used for sign up." },
       ]);
     }
     const email = body.email.trim().toLowerCase();
@@ -22,9 +22,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (!ipLimit.ok) return respondRateLimited(ipLimit);
 
     const auth = signupClient();
-    const { error } = body.password
-      ? await auth.auth.signUp({ email, password: body.password })
-      : await auth.auth.resend({ type: "signup", email });
+    const { error } =
+      body.purpose === "signup"
+        ? body.password
+          ? await auth.auth.signUp({ email, password: body.password })
+          : await auth.auth.resend({ type: "signup", email })
+        : await auth.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
     // Account-existence and provider-send errors share one public response.
     if (error) console.error("[otp] request failed", error.code ?? "unknown");
     await recordOtpIssue(identifier, Date.now());

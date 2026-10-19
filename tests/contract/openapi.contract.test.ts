@@ -92,10 +92,11 @@ const VALIDATION_422 = {
 };
 
 describe("contract: route surface", () => {
-  it("documents exactly the four custom server routes", () => {
+  it("documents exactly the custom server routes", () => {
     expect(Object.keys(doc.paths as object).sort()).toEqual([
       "/api/auth/otp/request",
       "/api/auth/otp/verify",
+      "/api/auth/password",
       "/api/auth/signin",
       "/api/screening/sessions",
     ]);
@@ -164,6 +165,23 @@ describe("contract: POST /api/auth/signin fixtures", () => {
     const validate = schemaAt("/components/schemas/SigninRequest");
     expect(validate({ identifier: "river_otter", password: "correct horse battery" })).toBe(true);
     expect(validate({ identifier: "ab", password: "x" })).toBe(false);
+  });
+});
+
+describe("contract: POST /api/auth/password fixtures", () => {
+  const p = "/api/auth/password";
+
+  it("accepts a strong password and stage response", () => {
+    expect(
+      schemaAt("/components/schemas/PasswordUpdateRequest")({ password: "calm-river-42" }),
+    ).toBe(true);
+    expect(responseSchema(p, "post", "200")({ stage: "needs_onboarding" })).toBe(true);
+  });
+
+  it("rejects a short password", () => {
+    expect(schemaAt("/components/schemas/PasswordUpdateRequest")({ password: "short" })).toBe(
+      false,
+    );
   });
 });
 
@@ -253,7 +271,9 @@ describe("contract: POST /api/auth/otp/request fixtures", () => {
   it("validates the purpose enum and email format", () => {
     const validate = schemaAt("/components/schemas/OtpRequestRequest");
     expect(validate({ email: "a@example.com", purpose: "forgot_username" })).toBe(true);
-    expect(validate({ email: "a@example.com", purpose: "signup", password: "safe-pass-123" })).toBe(true);
+    expect(validate({ email: "a@example.com", purpose: "signup", password: "safe-pass-123" })).toBe(
+      true,
+    );
     expect(validate({ email: "a@example.com", purpose: "signup", password: "short" })).toBe(false);
     expect(validate({ email: "a@example.com", purpose: "steal_passwords" })).toBe(false);
     expect(validate({ email: "not-an-email", purpose: "signup" })).toBe(false);

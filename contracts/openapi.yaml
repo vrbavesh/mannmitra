@@ -69,6 +69,38 @@ paths:
           $ref: "#/components/responses/RateLimited"
         "500":
           $ref: "#/components/responses/InternalError"
+  /api/auth/password:
+    post:
+      tags: [auth]
+      operationId: updatePassword
+      summary: Set a new password from a verified recovery session
+      description: >
+        Requires the short-lived recovery scope created by a correct
+        forgot_password OTP. The scope is bound to the current Supabase
+        session and cannot open any other app screen. Updates the password,
+        signs out other sessions, keeps the current session active, and
+        returns the user's stage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PasswordUpdateRequest"
+      responses:
+        "200":
+          description: Password changed; other sessions revoked.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SigninResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "410":
+          $ref: "#/components/responses/CodeExpired"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /api/screening/sessions:
     post:
       tags: [screening]
@@ -295,6 +327,15 @@ components:
       properties:
         stage:
           $ref: "#/components/schemas/Stage"
+    PasswordUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [password]
+      properties:
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
     ScreeningSubmitRequest:
       type: object
       additionalProperties: false

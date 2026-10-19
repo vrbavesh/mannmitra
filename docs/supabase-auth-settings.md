@@ -25,8 +25,12 @@ Your MannMitra code is {{ .Token }}. It expires in 2 minutes.
 
 Custom SMTP is enabled. The hosted **Confirm sign up** template contains
 `{{ .Token }}` and tells the user that the code expires in 2 minutes. The
-remaining Step 5 check is the live signup → email → verify → onboarding loop.
-Use only the user-approved test inbox recorded in `HANDOFF.md`.
+signup → email → verify → onboarding loop was verified in Step 5.
+
+Step 6 recovery uses Supabase passwordless email OTP, so the hosted **Magic
+Link** template must also contain `{{ .Token }}` and the same two-minute
+wording. The operator confirmed this hosted template on 2026-10-19. Use only
+the user-approved test inbox recorded in `HANDOFF.md`.
 
 ## Google provider
 
