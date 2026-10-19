@@ -1,5 +1,4 @@
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 
 export default function Home() {
@@ -8,14 +7,22 @@ export default function Home() {
       <Card className="flex flex-col gap-5 p-8">
         <div className="flex flex-col gap-1.5">
           <h1 className="text-2xl font-bold text-evergreen-800">MannMitra</h1>
-          <p className="text-sm text-muted-foreground">
-            A gentle space to check in with yourself.
-          </p>
+          <p className="text-sm text-muted-foreground">A gentle space to check in with yourself.</p>
         </div>
-        <Input label="Email" placeholder="you@example.com" helper="We&apos;ll only use this to sign you in." />
-        <Button size="lg" className="w-full">
-          Continue
-        </Button>
+        <div className="flex flex-col gap-3">
+          <Link
+            href="/signup"
+            className="inline-flex h-12 items-center justify-center rounded-control bg-primary px-7 text-base font-semibold text-primary-foreground transition-[transform,background-color] duration-[120ms] ease-out hover:bg-evergreen-700 active:scale-[0.97] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Create an account
+          </Link>
+          <Link
+            href="/signin"
+            className="inline-flex h-12 items-center justify-center rounded-control border border-border bg-surface px-7 text-base font-semibold text-foreground transition-[transform,background-color] duration-[120ms] ease-out hover:bg-muted active:scale-[0.97] motion-reduce:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            Sign in
+          </Link>
+        </div>
       </Card>
     </main>
   );
