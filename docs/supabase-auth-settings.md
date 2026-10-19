@@ -10,7 +10,7 @@ checked on 2026-10-19 in Supabase Dashboard → Authentication.
 | Secure email change            | enabled, confirmed                                                      |
 | Confirm email                  | enabled, confirmed                                                      |
 | OTP expiry                     | 120 seconds, configured                                                 |
-| OTP length                     | 6 digits, pending (currently 8)                                         |
+| OTP length                     | 6 digits, configured                                                    |
 | Minimum interval between sends | 2 minutes, enforced by the app; Supabase's setting requires custom SMTP |
 
 ## Email template content
@@ -23,13 +23,10 @@ must contain the token literal, e.g.:
 Your MannMitra code is {{ .Token }}. It expires in 2 minutes.
 ```
 
-**Current blocker:** this free Supabase project uses default email delivery.
-The dashboard disables template editing unless custom SMTP is configured,
-a Send Email hook is used, or the organization upgrades to Pro. The default
-confirmation email has not been verified to include `{{ .Token }}`. Configure
-one delivery option, set the confirmation template, then run the live Step 5
-signup → email → verify → onboarding loop. Set the OTP length to 6 digits
-once the delivery path is ready.
+Custom SMTP is enabled. The hosted **Confirm sign up** template contains
+`{{ .Token }}` and tells the user that the code expires in 2 minutes. The
+remaining Step 5 check is the live signup → email → verify → onboarding loop.
+Use only the user-approved test inbox recorded in `HANDOFF.md`.
 
 ## Google provider
 

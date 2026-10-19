@@ -5,7 +5,7 @@
 
 ## Where we are
 
-**Wave A — Step 5 IN FLIGHT. Signup and OTP request/verify code, UI, contract, and tests are implemented. `npm run verify` is green (121 tests). The live email loop cannot close until Supabase sends a six-digit confirmation code; hosted delivery and template configuration remain blocked. Do not mark Step 5 complete yet.**
+**Wave A — Step 5 IN FLIGHT. Signup and OTP request/verify code, UI, contract, and tests are implemented. Hosted custom SMTP, the `{{ .Token }}` confirmation template, 120-second expiry, and 6-digit OTP length are configured. `npm run verify` is green (121 tests). The real inbox code → verify → onboarding loop still needs to finish. Do not mark Step 5 complete yet.**
 
 ## Done
 
@@ -19,18 +19,20 @@
 
 ## In flight
 
-Step 5 app work is implemented and reviewed. The hosted project has email confirmation enabled and OTP expiry set to 120 seconds. OTP length remains 8 digits. The free project's default email delivery disables editing the confirmation template, so `{{ .Token }}` cannot yet be placed in the message. App-side route and cookie tests pass; browser inspection confirms the signup and verify screens render. A real signup → inbox code → verify → onboarding run is still required.
+Step 5 app work is implemented and reviewed. The hosted project now has custom SMTP enabled, email confirmation enabled, OTP expiry set to 120 seconds, OTP length set to 6 digits, and the **Confirm sign up** email template contains `{{ .Token }}` with calm MannMitra copy. App-side route and cookie tests pass; browser inspection confirms the signup and verify screens render.
+
+The live test must use `nathankneegrow@gmail.com`. **Never use the user's college email address for MannMitra testing.** The first browser run hit stale Next.js chunks from an old server. A fresh sandboxed server could not reach Supabase/Upstash. A fresh network-enabled server started successfully, but its signup request remained pending without a provider response before the user asked to wrap up. The server was stopped. Treat email delivery and account creation as unknown; inspect the approved inbox and hosted Auth users before retrying so the test does not create duplicates.
 
 ## Next up
 
-**Finish Step 5:** the user chose their existing custom SMTP service. Obtain its host, port, sender, and username; the user must enter its password in Supabase. Configure the confirmation template with `{{ .Token }}` and set OTP length to 6; run the real signup → inbox code → verify → onboarding loop. Then rerun `npm run verify`, close the Step 5 review, append its AGENTS.md progress line, and commit the close-out. No push without explicit user approval.
+**Finish Step 5:** check `nathankneegrow@gmail.com` for the MannMitra message from the last attempt and check Supabase Auth for that exact address. If no usable current code exists, retry once with a network-enabled local server and that address only. Enter the code, confirm redirect to `/onboarding`, remove the exact test account after the test, rerun `npm run verify`, close the Step 5 review, append its AGENTS.md progress line, and commit the close-out. No push without explicit user approval.
 
 ## Open blockers (operator, §6)
 
 - [x] Supabase project + keys — DONE (in `.env.local`, gitignored)
 - [x] Hosted Step 2 migrations + RLS/Storage verification — DONE (`verify:rls`: 34/34)
 - [x] Upstash Redis keys — DONE (in `.env.local`, gitignored; Step 4 rate limiting uses them)
-- [ ] OTP settings + `{{ .Token }}` email template (expiry is 120 seconds; length remains 8; template editing needs a delivery option, see `docs/supabase-auth-settings.md`)
+- [x] OTP settings + `{{ .Token }}` email template — DONE (custom SMTP enabled; 120-second expiry; 6 digits; hosted template saved)
 - [ ] Google OAuth credentials (Step 7 / Gate G4)
 - [ ] Google Places key or OSM approval (Step 11)
 - [ ] Groq key (optional Step 19)
@@ -40,7 +42,7 @@ Step 5 app work is implemented and reviewed. The hosted project has email confir
 
 ## Key decisions
 
-- **Step 5 in-flight:** Signup uses server-side Supabase Auth calls with no password persisted in browser storage; only email and sent time are held in sessionStorage for the verify screen. Both new and existing account responses are neutral. Upstash hashes email+purpose for challenge keys, enforces the two-minute request cooldown and five verification attempts, and resets attempts after resend. The verify route attaches Supabase session cookies to its response so the Stage 3 proxy can reach `/onboarding`. A missing challenge-store record falls back to Supabase's OTP decision. The hosted email configuration blocks the required live test, so this remains an in-flight step despite a green code gate.
+- **Step 5 in-flight:** Signup uses server-side Supabase Auth calls with no password persisted in browser storage; only email and sent time are held in sessionStorage for the verify screen. Both new and existing account responses are neutral. Upstash hashes email+purpose for challenge keys, enforces the two-minute request cooldown and five verification attempts, and resets attempts after resend. The verify route attaches Supabase session cookies to its response so the Stage 3 proxy can reach `/onboarding`. A missing challenge-store record falls back to Supabase's OTP decision. Hosted SMTP and the six-digit template are configured; only the real inbox verification loop remains. Approved test inbox: `nathankneegrow@gmail.com`. College email addresses are explicitly out of scope.
 
 - **Step 4: OpenAPI 3.1 contract is the single source of truth.** `contracts/openapi.yaml` defines four routes (`POST /api/auth/signin`, `/api/screening/sessions`, `/api/auth/otp/request`, `/api/auth/otp/verify`), one error envelope `{error:{code,message,details?}}` with 10 machine codes, and per-status code pins via `allOf`+`const` so a wrong code on the wrong status fails machine validation. `npm run generate:api-types` (pinned `openapi-typescript@7.13.0`) produces `src/generated/api.ts`; the script is committed. Contract tests (47) validate fixtures against the YAML itself with Ajv 2020 (OpenAPI 3.1 = JSON Schema 2020-12), including a self-check that every embedded example matches its schema.
 - **Step 4: Zod schemas asserted against generated types.** `src/server/validate.ts` uses `z.ZodType<T>` annotations so tsc fails if the schemas and the contract ever disagree. Request parsing throws the contract's 422 (`validation_failed`) with per-field dotted paths. `src/server/respond.ts` is the serialization boundary: every future route builds JSON through `respond()`, which validates against the contract-derived Zod schema before it reaches the wire.
