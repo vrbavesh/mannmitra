@@ -5,7 +5,7 @@
 
 ## Where we are
 
-**Wave A — Step 2 COMPLETE. Five migrations are applied to hosted Supabase project `rgbqzsivegyijacmrfqi`; hosted RLS/Storage verification and the full repository gate are green. Next: Step 3.**
+**Wave A — Step 3 COMPLETE. The stage guard, all spec route shells, and calm error pages are in place. Next: Step 4.**
 
 ## Done
 
@@ -14,14 +14,15 @@
 | (seed) spec + blueprint | `39c9e78` | — |
 | 1 Scaffold + design system + test harness | `fe56c6c` (last of 5 commits) | `npm run verify` green (lint, typegen+tsc, build, 10 unit tests); Playwright smoke green; live render checked in browser; `/ponytail-review`: 4 findings all fixed and re-verified |
 | 2 Schema + RLS + triggers + cleanup | `9b436ab` (last of 4 commits) | Five hosted migrations applied; `npm run verify:rls` green (34 tests); `npm run verify` green (lint, typecheck, build, 10 unit tests); Supabase security advisor clean; temporary users/fixtures confirmed removed; `/ponytail-review`: ship |
+| 3 Stage guard + route shells + calm errors | `ccc149a` | `npm run verify` green (lint, typecheck, build, 47 tests); production HTTP checks: signed-out `/home` 307 to `/signin`, `/crisis` and `/signup/verify` 200, unknown path 404; `/ponytail-review`: ship after fixing the unscored-screening case |
 
 ## In flight
 
-None. Step 3 has not started.
+None. Step 4 has not started.
 
 ## Next up
 
-**Step 3 — Stage-guard middleware + route shells** (blueprint §2; strongest model tier; `/tdd`). Read the relevant Next.js 16 guides in `node_modules/next/dist/docs/` before implementation.
+**Step 4 — API contract + server-route conventions + rate limiting** (blueprint §2). Define the OpenAPI contract before implementing server routes; use the Step 3 Supabase SSR cookie session pattern and protect each mutation at the server route itself.
 
 ## Open blockers (operator, §6)
 
@@ -38,6 +39,7 @@ None. Step 3 has not started.
 
 ## Key decisions
 
+- Step 3 uses Next.js 16 `src/proxy.ts`, the current name for middleware. It reads a verified Supabase user, then profile, latest pretest, and latest program under RLS; the stage decision uses the profile time zone. `@supabase/ssr` refreshes auth cookies. The `awaiting_start` stage follows the blueprint's documented spec-gap fix. A screening with null severity stays at `needs_pretest`; protected page responses are private and uncached. Route shells contain no user data and will be replaced in their feature steps. API routes are excluded from the proxy and must verify identity and authorization themselves in Step 4 onward.
 - GitHub remote `origin` is configured. Commit every completed step after its gate and status close-out; push only with explicit user approval.
 - **Hosted migrations applied through the Supabase connector.** Supabase assigned the canonical remote versions, and local filenames were aligned to them so future CLI migration history stays consistent: `20261019042648` through `20261019043230`.
 - Current Supabase guidance uses explicit `to authenticated` policies and `(select auth.uid())`; deprecated `auth.role()` was removed before apply. A fifth migration revokes Data API execution of trigger-only `security definer` functions and indexes all foreign keys needed for ownership reads and cascading account deletion. Security advisor is clean; fresh-index “unused” notices are expected on the empty schema.
