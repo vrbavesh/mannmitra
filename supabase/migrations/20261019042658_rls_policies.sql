@@ -4,7 +4,9 @@
 alter table public.profiles enable row level security;
 
 create policy "own profile" on public.profiles
-for all using (id = auth.uid()) with check (id = auth.uid());
+for all to authenticated
+using (id = (select auth.uid()))
+with check (id = (select auth.uid()));
 
 -- Spec's own-rows loop, minus screening_sessions (handled below per deviation #6).
 do $$
@@ -17,7 +19,7 @@ begin
   ] loop
     execute format('alter table %I enable row level security', t);
     execute format(
-      'create policy "own rows" on %I for all using (user_id = auth.uid()) with check (user_id = auth.uid())',
+      'create policy "own rows" on %I for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()))',
       t
     );
   end loop;
@@ -30,13 +32,15 @@ end $$;
 -- the service role, which bypasses RLS — prevents forging severity past the risk gate.
 alter table public.screening_sessions enable row level security;
 create policy "own sessions (select only)" on public.screening_sessions
-for select using (user_id = auth.uid());
+for select to authenticated
+using (user_id = (select auth.uid()));
 
 alter table public.screening_answers enable row level security;
 create policy "own answers (select only)" on public.screening_answers
-for select using (exists (
+for select to authenticated
+using (exists (
   select 1 from public.screening_sessions s
-  where s.id = session_id and s.user_id = auth.uid()
+  where s.id = session_id and s.user_id = (select auth.uid())
 ));
 
 revoke insert, update, delete on public.screening_sessions, public.screening_answers
@@ -45,4 +49,4 @@ from anon, authenticated;
 -- Task library: read only, authenticated users (spec §14).
 alter table public.task_templates enable row level security;
 create policy "read templates" on public.task_templates
-for select using (auth.role() = 'authenticated');
+for select to authenticated using (true);

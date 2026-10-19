@@ -22,6 +22,8 @@ const RUN = Date.now();
 const EMAIL_A = `rls-a-${RUN}@example.com`;
 const EMAIL_B = `rls-b-${RUN}@example.com`;
 const PASSWORD = "RlsTest!12345";
+const TEMPLATE_TRACK = `__rls_test_${RUN}`;
+const TEMPLATE_TITLE = `RLS seed template ${RUN}`;
 
 const admin: SupabaseClient = createClient(URL, SERVICE, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -102,17 +104,27 @@ beforeAll(async () => {
 
   // One shared task template for the read-for-authenticated test (c).
   const { error: tplErr } = await admin.from("task_templates").insert({
-    track: "depression",
+    track: TEMPLATE_TRACK,
     day_no: 1,
-    title: "RLS seed template",
+    title: TEMPLATE_TITLE,
     component: "checkin",
   });
   if (tplErr) throw new Error(`seed task_templates: ${tplErr.message}`);
 });
 
 afterAll(async () => {
-  await admin.auth.admin.deleteUser(uidA);
-  await admin.auth.admin.deleteUser(uidB);
+  const errors: string[] = [];
+  const template = await admin.from("task_templates").delete().eq("track", TEMPLATE_TRACK);
+  if (template.error) errors.push(`template: ${template.error.message}`);
+  if (uidA) {
+    const deleted = await admin.auth.admin.deleteUser(uidA);
+    if (deleted.error) errors.push(`user A: ${deleted.error.message}`);
+  }
+  if (uidB) {
+    const deleted = await admin.auth.admin.deleteUser(uidB);
+    if (deleted.error) errors.push(`user B: ${deleted.error.message}`);
+  }
+  if (errors.length) throw new Error(`cleanup: ${errors.join(" / ")}`);
 });
 
 /** Tables with a user_id column, checked in the cross-user matrix (a) + anon (b). */
@@ -208,7 +220,7 @@ describe("(c) authenticated reads task_templates", () => {
   it("A sees the seeded template", async () => {
     const { data, error } = await userA.from("task_templates").select("title");
     expect(error).toBeNull();
-    expect((data ?? []).some((t) => t.title === "RLS seed template")).toBe(true);
+    expect((data ?? []).some((t) => t.title === TEMPLATE_TITLE)).toBe(true);
   });
 });
 
@@ -227,14 +239,14 @@ describe("(d) screening tables are write-locked against clients (deviation #6)",
     expect(ins.error).not.toBeNull();
     expect(ins.error?.code).toBe("42501");
   });
-  it("authenticated update of screening severity is DENIED (no rows)", async () => {
+  it("authenticated update of screening severity is DENIED", async () => {
     const up = await userA
       .from("screening_sessions")
       .update({ severity: "minimal", safety_answer: 0 })
       .eq("id", sessionIdA)
       .select();
-    expect(up.error).toBeNull();
-    expect(up.data).toHaveLength(0);
+    expect(up.error?.code).toBe("42501");
+    expect(up.data).toBeNull();
   });
   it("A can still READ own screening rows", async () => {
     const { data, error } = await userA.from("screening_sessions").select("severity");

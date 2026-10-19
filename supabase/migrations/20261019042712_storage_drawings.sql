@@ -5,8 +5,8 @@ on conflict (id) do nothing;
 
 drop policy if exists "own drawing folder" on storage.objects;
 create policy "own drawing folder" on storage.objects
-for all using (
-  bucket_id = 'drawings' and (storage.foldername(name))[1] = auth.uid()::text
+for all to authenticated using (
+  bucket_id = 'drawings' and (storage.foldername(name))[1] = (select auth.uid())::text
 ) with check (
-  bucket_id = 'drawings' and (storage.foldername(name))[1] = auth.uid()::text
+  bucket_id = 'drawings' and (storage.foldername(name))[1] = (select auth.uid())::text
 );
