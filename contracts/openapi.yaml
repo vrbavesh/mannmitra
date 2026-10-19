@@ -104,7 +104,9 @@ paths:
         has an email (password) identity is never accepted: the Google
         identity is unlinked, the session is ended server-side (best effort;
         a failed sign-out is logged as a code), and NO session cookie is issued
-        on any outcome of that path. The user is sent to
+        on any outcome of that path. Existing project auth cookies are expired
+        so a previous browser session cannot survive the rejected sign-in.
+        The user is sent to
         /signin?notice=google_conflict
         with the exact spec copy. A new Google user is sent to /home and the
         stage guard routes to /onboarding; a returning Google user is routed
@@ -134,8 +136,9 @@ paths:
               schema: { type: string }
             Set-Cookie:
               description: >
-                Supabase session cookies on success. Never attached on the
-                same-email conflict path; the session is ended first.
+                Supabase session cookies on success. The same-email conflict
+                path sends only expiry cookies for existing project auth
+                cookies, never new session credentials.
               schema: { type: string }
   /api/auth/password:
     post:

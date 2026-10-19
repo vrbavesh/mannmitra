@@ -49,6 +49,7 @@ const callback = (query = "?code=auth-code") =>
 let errorSpy: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://project.supabase.co");
   for (const mock of [signInWithOAuth, exchangeCodeForSession, unlinkIdentity, signOut]) {
     mock.mockReset();
   }
@@ -59,6 +60,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   errorSpy.mockRestore();
 });
 
@@ -189,6 +191,34 @@ describe("GET /api/auth/callback", () => {
       "http://localhost:3000/signin?notice=google_conflict",
     );
     expect(signOut).toHaveBeenCalledWith({ scope: "local" });
+    expect(attachCookies).not.toHaveBeenCalled();
+  });
+
+  it("expires existing project session cookies on collision without attaching a new session", async () => {
+    exchangeCodeForSession.mockResolvedValue({
+      data: { user: signedInUser(["email", "google"]), session: { access_token: "token" } },
+      error: null,
+    });
+    // A failed server sign-out must not preserve the old browser session.
+    signOut.mockResolvedValue({ error: { code: "session_not_found" } });
+    const response = await completeGoogle(
+      new NextRequest("http://localhost:3000/api/auth/callback?code=auth-code", {
+        headers: {
+          cookie:
+            "sb-project-auth-token.0=old; sb-project-auth-token.1=old; sb-project-auth-token-code-verifier=old; sb-other-auth-token=keep; preference=keep",
+        },
+      }),
+    );
+    for (const name of [
+      "sb-project-auth-token.0",
+      "sb-project-auth-token.1",
+      "sb-project-auth-token-code-verifier",
+    ]) {
+      expect(response.cookies.get(name)?.value).toBe("");
+      expect(response.cookies.get(name)?.maxAge).toBe(0);
+    }
+    expect(response.cookies.get("sb-other-auth-token")).toBeUndefined();
+    expect(response.cookies.get("preference")).toBeUndefined();
     expect(attachCookies).not.toHaveBeenCalled();
   });
 

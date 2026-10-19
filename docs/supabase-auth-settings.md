@@ -75,8 +75,16 @@ same email **before** the app callback (`models.DetermineAccountLinking`
 returns `LinkAccount` for one matching user). The app cannot prevent the merge,
 so `GET /api/auth/callback` audits the linked identities afterwards:
 `src/server/googleIdentity.ts` removes the Google identity and ends the
-session, and the callback route never attaches session cookies on that path.
+session, and the callback route withholds all new session credentials on that path.
+It expires existing project auth cookies as well, so a prior browser session
+does not survive the rejected sign-in. Unrelated cookies are left alone.
 The user lands on `/signin?notice=google_conflict` with the exact spec copy.
+
+The real Google-enabled three-case matrix passed on 2026-10-19. New and
+returning Google users reached `/onboarding`, proving the localhost callback
+allowlist in completed flows. The password-account collision was rejected,
+its Google identity removed, and its session ended. Both temporary accounts
+were cleaned up. See [the verification report](verification/step7-google-matrix.md).
 
 ## Unverified-account cleanup
 

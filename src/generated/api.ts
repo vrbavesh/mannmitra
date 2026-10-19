@@ -53,7 +53,7 @@ export interface paths {
     };
     /**
      * Complete Google OAuth and enforce the same-email rule
-     * @description Exchanges the PKCE code for a session, then audits linked identities (spec 3.4). A Google callback that lands on an account which already has an email (password) identity is never accepted: the Google identity is unlinked, the session is ended server-side (best effort; a failed sign-out is logged as a code), and NO session cookie is issued on any outcome of that path. The user is sent to /signin?notice=google_conflict with the exact spec copy. A new Google user is sent to /home and the stage guard routes to /onboarding; a returning Google user is routed by the stage guard. Provider cancellation or a failed exchange lands on /signin with a calm notice. Automatic same-email linking happens in Supabase Auth before this route runs, which is why the audit is mandatory rather than optional.
+     * @description Exchanges the PKCE code for a session, then audits linked identities (spec 3.4). A Google callback that lands on an account which already has an email (password) identity is never accepted: the Google identity is unlinked, the session is ended server-side (best effort; a failed sign-out is logged as a code), and NO session cookie is issued on any outcome of that path. Existing project auth cookies are expired so a previous browser session cannot survive the rejected sign-in. The user is sent to /signin?notice=google_conflict with the exact spec copy. A new Google user is sent to /home and the stage guard routes to /onboarding; a returning Google user is routed by the stage guard. Provider cancellation or a failed exchange lands on /signin with a calm notice. Automatic same-email linking happens in Supabase Auth before this route runs, which is why the audit is mandatory rather than optional.
      */
     get: operations["completeGoogleSignIn"];
     put?: never;
@@ -609,7 +609,7 @@ export interface operations {
         headers: {
           /** @description App destination, or /signin?notice=google_conflict| google_cancelled|google_failed. */
           Location?: string;
-          /** @description Supabase session cookies on success. Never attached on the same-email conflict path; the session is ended first. */
+          /** @description Supabase session cookies on success. The same-email conflict path sends only expiry cookies for existing project auth cookies, never new session credentials. */
           "Set-Cookie"?: string;
           [name: string]: unknown;
         };

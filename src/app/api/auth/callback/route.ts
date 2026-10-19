@@ -31,9 +31,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (error || !data.user) return attachCookies(backToSignin(request, "google_failed"));
 
     const outcome = await enforceSameEmailRule(client, data.user);
-    // The audit ended the session (best effort). Dropping every pending cookie
-    // keeps the promise absolute: no session cookie reaches the browser here.
-    if (outcome.blocked) return backToSignin(request, "google_conflict");
+    if (outcome.blocked) {
+      const response = backToSignin(request, "google_conflict");
+      // Drop minted credentials, but also expire a previous browser session.
+      const project = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname.split(".")[0];
+      const storageKey = `sb-${project}-auth-token`;
+      for (const { name } of request.cookies.getAll()) {
+        if (
+          name.startsWith(storageKey) &&
+          /^(?:-code-verifier)?(?:\.\d+)?$/.test(name.slice(storageKey.length))
+        ) {
+          response.cookies.set(name, "", { path: "/", maxAge: 0 });
+        }
+      }
+      return response;
+    }
 
     return attachCookies(noStore(NextResponse.redirect(new URL("/home", request.url), 302)));
   } catch (error) {
