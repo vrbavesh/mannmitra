@@ -8,7 +8,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 /**
  * Label-above input with helper + error slots (one pattern for the whole app).
- * Error text is calm amber (danger-soft), never a red alarm (spec §3.3).
+ * Error text uses calm teal (danger-soft), never a red alarm (spec §3.3).
  */
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   { label, helper, error, id, className = "", ...props },

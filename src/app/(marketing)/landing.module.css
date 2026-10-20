@@ -1,14 +1,14 @@
 .landing {
-  --ink: oklch(27% 0.05 195);
-  --secondary: oklch(44% 0.04 195);
-  --ground: oklch(97% 0.025 175);
+  --ink: var(--color-foreground);
+  --secondary: var(--color-muted-foreground);
+  --ground: var(--color-background);
   --glass: rgb(255 255 255 / 50%);
   --line: rgb(20 90 90 / 24%);
-  --mint: #287c70;
+  --mint: var(--color-accent);
   --ease: cubic-bezier(0.23, 1, 0.32, 1);
   position: relative;
   isolation: isolate;
-  background: linear-gradient(180deg, var(--ground), oklch(92% 0.05 190)) fixed;
+  background: linear-gradient(180deg, var(--ground), var(--color-background-end)) fixed;
   color: var(--ink);
   font:
     400 1.05rem/1.55 -apple-system,

@@ -4,7 +4,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   raised?: boolean;
 }
 
-/** Soft 16px card, bone surface, forest-tinted shadow. */
+/** Soft 16px card, mint surface, teal-tinted shadow. */
 export function Card({ raised = false, className = "", ...props }: CardProps) {
   return (
     <div

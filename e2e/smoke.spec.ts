@@ -25,31 +25,41 @@ test("sign-in controls meet contrast and motion requirements", async ({ page }) 
   await input.focus();
   const styles = await input.evaluate((element) => {
     const style = getComputedStyle(element);
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext("2d")!;
     const luminance = (color: string) => {
-      const values = color
-        .match(/[\d.]+/g)!
+      context.fillStyle = color;
+      context.fillRect(0, 0, 1, 1);
+      const values = Array.from(context.getImageData(0, 0, 1, 1).data)
         .slice(0, 3)
-        .map(Number)
         .map((value) => {
           const channel = value / 255;
           return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
         });
       return values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722;
     };
-    const contrast = (color: string) => {
+    const contrast = (color: string, backgroundColor = style.backgroundColor) => {
       const foreground = luminance(color);
-      const background = luminance(style.backgroundColor);
+      const background = luminance(backgroundColor);
       return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05);
     };
+    const button = getComputedStyle(
+      element.closest("form")!.querySelector('button[type="submit"]')!,
+    );
     return {
       border: contrast(style.borderTopColor),
       placeholder: contrast(getComputedStyle(element, "::placeholder").color),
       focus: contrast(style.outlineColor),
+      text: contrast(style.color),
+      button: contrast(button.color, button.backgroundColor),
     };
   });
   expect(styles.border).toBeGreaterThanOrEqual(3);
   expect(styles.placeholder).toBeGreaterThanOrEqual(4.5);
   expect(styles.focus).toBeGreaterThanOrEqual(3);
+  expect(styles.text).toBeGreaterThanOrEqual(4.5);
+  expect(styles.button).toBeGreaterThanOrEqual(4.5);
   const transition = await page
     .getByRole("button", { name: "Sign in", exact: true })
     .evaluate((element) => getComputedStyle(element).transitionProperty);

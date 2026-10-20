@@ -1,69 +1,70 @@
 @import "tailwindcss";
 
 /*
- * MannMitra design tokens — Forest direction (blueprint §0.2).
- * One palette (evergreen/bone/amber), one accent (amber), light-locked theme.
- * Tailwind v4: colors declared in @theme generate utilities (bg-bone-100, text-evergreen-800...).
- * Semantic aliases map 1:1 to utility names (bg-primary, border-border, text-muted-foreground...).
+ * Shared Fluid Glass palette, extended from the approved landing.
+ * Legacy evergreen/bone/amber utility names remain compatible with existing callers.
+ * Semantic roles and those legacy scales all resolve to the same aqua/teal family.
  */
 
 @theme {
-  /* Evergreen (primary) scale — deep forest greens */
-  --color-evergreen-50: #f0f7f2;
-  --color-evergreen-100: #dcece1;
-  --color-evergreen-200: #bad8c5;
-  --color-evergreen-300: #8dbda3;
-  --color-evergreen-400: #5c9c7c;
-  --color-evergreen-500: #3d8162;
-  --color-evergreen-600: #2c674d;
-  --color-evergreen-700: #1f523d;
-  --color-evergreen-800: #14532d;
-  --color-evergreen-900: #0e3d22;
-  --color-evergreen-950: #082616;
+  /* Teal greens */
+  --color-evergreen-50: #effaf6;
+  --color-evergreen-100: #dcf3eb;
+  --color-evergreen-200: #b9e3d5;
+  --color-evergreen-300: #8acdbb;
+  --color-evergreen-400: #5bab98;
+  --color-evergreen-500: #35927f;
+  --color-evergreen-600: #287c70;
+  --color-evergreen-700: #226c63;
+  --color-evergreen-800: #195854;
+  --color-evergreen-900: oklch(27% 0.05 195);
+  --color-evergreen-950: #0a292b;
 
-  /* Bone (background) scale — warm off-whites */
-  --color-bone-50: #fdfdfb;
-  --color-bone-100: #f9f8f3;
-  --color-bone-200: #f2f0e8;
-  --color-bone-300: #e7e4d8;
-  --color-bone-400: #d5d1c2;
-  --color-bone-500: #bcb7a5;
+  /* Aqua ground and mint surfaces */
+  --color-bone-50: #f7fdfa;
+  --color-bone-100: oklch(97% 0.025 175);
+  --color-bone-200: #e3f4ef;
+  --color-bone-300: #cde8df;
+  --color-bone-400: #b1d4ca;
+  --color-bone-500: #92b9af;
 
-  /* Amber (the ONE accent — locked app-wide) */
-  --color-amber-100: #fdf0d5;
-  --color-amber-200: #f9dfab;
-  --color-amber-300: #f3c673;
-  --color-amber-400: #edac4a;
-  --color-amber-500: #e08f21;
-  --color-amber-600: #c47416;
-  --color-amber-700: #9c5713;
+  /* One mint accent, including calm validation panels */
+  --color-amber-50: #effaf6;
+  --color-amber-100: #dcf3eb;
+  --color-amber-200: #b9e3d5;
+  --color-amber-300: #8acdbb;
+  --color-amber-400: #5bab98;
+  --color-amber-500: #287c70;
+  --color-amber-600: #226c63;
+  --color-amber-700: #23695e;
 
-  /* Neutrals (slate-warm, body text and borders) */
-  --color-neutral-50: #f8f8f6;
-  --color-neutral-100: #efefec;
-  --color-neutral-200: #e0e0db;
-  --color-neutral-300: #c7c7c0;
-  --color-neutral-400: #a0a099;
-  --color-neutral-500: #7d7d76;
-  --color-neutral-600: #5f5f59;
-  --color-neutral-700: #4a4a45;
-  --color-neutral-800: #333330;
-  --color-neutral-900: #1f1f1d;
+  /* Cool neutrals with the landing's teal ink */
+  --color-neutral-50: #f6fcfa;
+  --color-neutral-100: #e8f5f1;
+  --color-neutral-200: #cfe5de;
+  --color-neutral-300: #a8c8bf;
+  --color-neutral-400: #7da69d;
+  --color-neutral-500: #5b7f78;
+  --color-neutral-600: oklch(44% 0.04 195);
+  --color-neutral-700: #315c58;
+  --color-neutral-800: #244b49;
+  --color-neutral-900: oklch(27% 0.05 195);
 
   /* Semantic roles (utility aliases) */
-  --color-background: #f9f8f3; /* bone-100 */
-  --color-surface: #fdfdfb; /* bone-50 */
-  --color-foreground: #1f1f1d; /* neutral-900 */
-  --color-primary: #14532d; /* evergreen-800 */
-  --color-primary-foreground: #fdfdfb; /* bone-50 */
-  --color-accent: #e08f21; /* amber-500 */
-  --color-accent-foreground: #1f1f1d;
-  --color-border: #d5d1c2; /* bone-400 */
-  --color-input-border: #7d7d76; /* 4:1 against bone surfaces */
-  --color-placeholder: #5f5f59; /* neutral-600, normal-text contrast */
-  --color-muted: #f2f0e8; /* bone-200 */
-  --color-muted-foreground: #5f5f59; /* neutral-600 */
-  --color-danger-soft: #9c5713; /* amber-700 — calm warning, never a red alarm */
+  --color-background: oklch(97% 0.025 175);
+  --color-background-end: oklch(92% 0.05 190);
+  --color-surface: #f7fdfa;
+  --color-foreground: oklch(27% 0.05 195);
+  --color-primary: #287c70;
+  --color-primary-foreground: #f7fdfa;
+  --color-accent: #287c70;
+  --color-accent-foreground: #f7fdfa;
+  --color-border: #a8ccc3;
+  --color-input-border: #5b827a;
+  --color-placeholder: oklch(44% 0.04 195);
+  --color-muted: #e3f4ef;
+  --color-muted-foreground: oklch(44% 0.04 195);
+  --color-danger-soft: #23695e;
 
   /* Radius system: soft cards, pill controls (one system — documented) */
   --radius-card: 16px;
@@ -73,15 +74,24 @@
   --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
-  --shadow-card: 0 1px 2px rgb(14 61 34 / 0.04), 0 8px 24px rgb(14 61 34 / 0.06);
-  --shadow-raised: 0 2px 4px rgb(14 61 34 / 0.06), 0 16px 40px rgb(14 61 34 / 0.1);
+  --shadow-card: 0 1px 2px rgb(20 100 100 / 0.04), 0 8px 24px rgb(20 100 100 / 0.06);
+  --shadow-raised: 0 2px 4px rgb(20 100 100 / 0.06), 0 16px 40px rgb(20 100 100 / 0.1);
+}
+
+:root {
+  color-scheme: light;
 }
 
 body {
-  background: var(--color-background);
+  background: linear-gradient(180deg, var(--color-background), var(--color-background-end)) fixed;
   color: var(--color-foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #addfd0;
+  color: var(--color-foreground);
 }
 
 /* Keyframes: opacity/transform only (motion budget) */

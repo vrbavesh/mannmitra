@@ -22,7 +22,7 @@ export function useToast(): ToastApi {
 }
 
 /**
- * Minimal calm toast: bone surface, evergreen text, opacity+translate enter.
+ * Minimal calm toast: mint surface, teal text, opacity+translate enter.
  * Auto-dismiss 4s; no stacking queue beyond the single latest message (v1).
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
