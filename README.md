@@ -1,6 +1,6 @@
 # MannMitra
 
-A mental wellbeing screening and 30-day self-help app. The authoritative product specification is `mannmitra-master-spec.md.md`; implementation steps are in `plans/mannmitra-blueprint-opencode.md`. Read `AGENTS.md` for repository rules and `HANDOFF.md` for current status.
+A mental wellbeing screening and 30-day self-help app for young adults in India.
 
 ## Run locally
 
@@ -20,4 +20,4 @@ Run verification commands sequentially because Next.js build and development ser
 
 Programs, reports, risk events, and screening rows are read-only to ordinary clients. Planned feature writers must use authorized server operations. Database foreign keys also enforce that program and screening references share the row owner's identity, including when written by the service role.
 
-Commit completed steps locally after verification and review. Push only with explicit user approval. Public deployment remains subject to the blueprint's launch gates.
+Commit completed steps locally after verification and review. Push only with explicit user approval. Public deployment remains subject to the project's internal launch review.

@@ -1,4 +1,4 @@
-// Ported from plans/MannMitra – Fluid Glass.html: response in seconds, damping ratio.
+// Ported from the supplied Fluid Glass prototype: response in seconds, damping ratio.
 export type Spring = { x: number; v: number; t: number };
 
 export const spring = (value: number): Spring => ({ x: value, v: 0, t: value });

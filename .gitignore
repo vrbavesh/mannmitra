@@ -14,8 +14,17 @@
 /coverage
 /test-results/
 /playwright-report/
-/.impeccable/review/
+/.impeccable/
 /.openchamber/
+
+# internal project planning and verification
+/AGENTS.md
+/DESIGN.md
+/HANDOFF.md
+/PRODUCT.md
+/mannmitra-master-spec.md.md
+/docs/
+/plans/
 
 # next.js
 /.next/
