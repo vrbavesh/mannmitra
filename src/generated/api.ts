@@ -139,7 +139,7 @@ export interface paths {
     put?: never;
     /**
      * Submit screening answers; server computes scores and severity
-     * @description All 18 MHI-18 items (raw 1-6) plus the mandatory safety question (0-3). The server scores, bands severity, writes the session and answers with the service role (screening tables reject client writes by RLS), records risk_events when the risk gate fires, and returns the result with the stage the client should show. `scoring_version` stamps which scoring key produced this row. Retake rule (spec 6): a new pre-test inside 14 days of the last one returns 409. Rate limit applies per user.
+     * @description All 18 MHI-18 items (raw 1-6) plus the mandatory safety question (0-3). The server scores, bands severity, writes the session and answers with the service role (screening tables reject client writes by RLS), records risk_events when the risk gate fires, and returns the result with the stage the client should show. `scoring_version` stamps which scoring key produced this row. Retake rule (spec 6): a new pre-test inside 14 days of the last one returns 409. This step accepts pretests only, after completed onboarding and while the derived stage is needs_pretest. Sessions, all answers and any risk event are saved in one transaction. Concurrent submissions serialize per user; retries after a successful save return 409 without another row. Retake days use the profile timezone. Other ineligible stages return 422 with field=stage. Recovery sessions are not accepted. Rate limit: 10 submissions per 10 minutes per user.
      */
     post: operations["submitScreening"];
     delete?: never;
@@ -838,6 +838,7 @@ export interface operations {
         };
       };
       401: components["responses"]["Unauthorized"];
+      403: components["responses"]["EmailUnverified"];
       409: components["responses"]["RetakeNotAllowed"];
       422: components["responses"]["ValidationFailed"];
       429: components["responses"]["RateLimited"];

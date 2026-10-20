@@ -38,10 +38,11 @@ export const signinRequestSchema: z.ZodType<Schemas["SigninRequest"]> = z.object
   password: z.string().min(1).max(128),
 });
 
-export const screeningSubmitRequestSchema: z.ZodType<Schemas["ScreeningSubmitRequest"]> = z.object({
-  answers: z.array(z.number().int().min(1).max(6)).length(18),
-  safety_answer: z.number().int().min(0).max(3),
-});
+export const screeningSubmitRequestSchema: z.ZodType<Schemas["ScreeningSubmitRequest"]> =
+  z.strictObject({
+    answers: z.array(z.number().int().min(1).max(6)).length(18),
+    safety_answer: z.number().int().min(0).max(3),
+  });
 
 export const otpRequestSchema: z.ZodType<Schemas["OtpRequestRequest"]> = z.object({
   email: z.email().max(254),

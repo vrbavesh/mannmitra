@@ -275,7 +275,13 @@ paths:
         the result with the stage the client should show. `scoring_version`
         stamps which scoring key produced this row. Retake rule (spec 6):
         a new pre-test inside 14 days of the last one returns 409.
-        Rate limit applies per user.
+        This step accepts pretests only, after completed onboarding and while
+        the derived stage is needs_pretest. Sessions, all answers and any risk
+        event are saved in one transaction. Concurrent submissions serialize
+        per user; retries after a successful save return 409 without another
+        row. Retake days use the profile timezone. Other ineligible stages
+        return 422 with field=stage. Recovery sessions are not accepted.
+        Rate limit: 10 submissions per 10 minutes per user.
       requestBody:
         required: true
         content:
@@ -308,6 +314,8 @@ paths:
                 stage: awaiting_start
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/EmailUnverified"
         "409":
           $ref: "#/components/responses/RetakeNotAllowed"
         "422":

@@ -24,7 +24,13 @@ import { Redis } from "@upstash/redis";
 const PREFIX = "mm:rl";
 
 export type LimitName =
-  "signin" | "otp_request_email" | "otp_request_ip" | "otp_verify" | "username" | "onboarding";
+  | "signin"
+  | "otp_request_email"
+  | "otp_request_ip"
+  | "otp_verify"
+  | "username"
+  | "onboarding"
+  | "screening";
 
 const LIMITS: Record<LimitName, { tokens: number; window: `${number} ${"s" | "m" | "h" | "d"}` }> =
   {
@@ -34,6 +40,7 @@ const LIMITS: Record<LimitName, { tokens: number; window: `${number} ${"s" | "m"
     otp_verify: { tokens: 5, window: "2 m" },
     username: { tokens: 30, window: "1 m" },
     onboarding: { tokens: 10, window: "10 m" },
+    screening: { tokens: 10, window: "10 m" },
   };
 
 export type RateLimitResult = {

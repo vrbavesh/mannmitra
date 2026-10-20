@@ -2,7 +2,9 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import type { NextRequest, NextResponse } from "next/server";
+import { connection } from "next/server";
 import { errors } from "@/server/errors";
+import { cookies } from "next/headers";
 
 function authConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -21,6 +23,17 @@ export function adminClient() {
 export function signupClient() {
   const { url, key } = authConfig();
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+export async function pageClient() {
+  // Supabase checks token expiry against the clock, including during partial prefetches.
+  await connection();
+  const { url, key } = authConfig();
+  const jar = await cookies();
+  // The proxy refreshes cookies; a Server Component can only read them.
+  return createServerClient(url, key, {
+    cookies: { getAll: () => jar.getAll(), setAll: () => {} },
+  });
 }
 
 export function verificationClient(request: NextRequest) {
