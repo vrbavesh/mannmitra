@@ -14,6 +14,7 @@
 /coverage
 /test-results/
 /playwright-report/
+/.impeccable/review/
 /.openchamber/
 
 # next.js

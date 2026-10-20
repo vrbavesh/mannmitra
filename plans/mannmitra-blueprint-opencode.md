@@ -301,6 +301,8 @@ Use the framework's built-in not-found/error pages (spec fix #6) styled calm —
 
 **Goal:** Spec `/` route: 3D landing with Sign Up / Sign In, built to the design direction with reduced-motion fallback.
 
+**User-selected reference (2026-10-20):** `plans/MannMitra – Fluid Glass.html` replaces the earlier creative examples below. Preserve its mint fluid orb, system typography, five sections, CTA wording and compact visible navigation. Product truth, accessibility and fallback requirements still apply. Step 8 uses a CSS still rather than an SVG asset; no external raster artwork is needed for this procedural design. See `docs/design/landing.md` and `docs/verification/step8-fluid-glass.md` for the delivered adaptations and checks.
+
 **Context brief:** Stack names React Three Fiber + Framer Motion (use `motion/react`) with lightweight fallback + `prefers-reduced-motion` (spec §Stack). design-taste-frontend governs layout/copy; `apple-design` governs gesture/spring feel; `/animate` gate: hero entry = delight-tier, purpose = hierarchy + storytelling. Dials: VARIANCE 7 / MOTION 6 / DENSITY 3.
 
 **Tasks:**

@@ -1,0 +1,422 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-20T10:22:19.713Z",
+  "title": "Design System: MannMitra",
+  "extensions": {
+    "colorMeta": {
+      "landing-ink": {
+        "role": "primary",
+        "displayName": "Landing Ink",
+        "canonical": "oklch(27% 0.05 195)",
+        "tonalRamp": [
+          "oklch(15.00% 0.05000 195.00)",
+          "oklch(26.43% 0.05000 195.00)",
+          "oklch(37.86% 0.05000 195.00)",
+          "oklch(49.29% 0.05000 195.00)",
+          "oklch(60.71% 0.05000 195.00)",
+          "oklch(72.14% 0.05000 195.00)",
+          "oklch(83.57% 0.05000 195.00)",
+          "oklch(95.00% 0.05000 195.00)"
+        ]
+      },
+      "landing-secondary": {
+        "role": "neutral",
+        "displayName": "Landing Secondary",
+        "canonical": "oklch(44% 0.04 195)",
+        "tonalRamp": [
+          "oklch(15.00% 0.04000 195.00)",
+          "oklch(26.43% 0.04000 195.00)",
+          "oklch(37.86% 0.04000 195.00)",
+          "oklch(49.29% 0.04000 195.00)",
+          "oklch(60.71% 0.04000 195.00)",
+          "oklch(72.14% 0.04000 195.00)",
+          "oklch(83.57% 0.04000 195.00)",
+          "oklch(95.00% 0.04000 195.00)"
+        ]
+      },
+      "landing-ground": {
+        "role": "neutral",
+        "displayName": "Landing Ground",
+        "canonical": "oklch(97% 0.025 175)",
+        "tonalRamp": [
+          "oklch(15.00% 0.02500 175.00)",
+          "oklch(26.43% 0.02500 175.00)",
+          "oklch(37.86% 0.02500 175.00)",
+          "oklch(49.29% 0.02500 175.00)",
+          "oklch(60.71% 0.02500 175.00)",
+          "oklch(72.14% 0.02500 175.00)",
+          "oklch(83.57% 0.02500 175.00)",
+          "oklch(95.00% 0.02500 175.00)"
+        ]
+      },
+      "landing-ground-end": {
+        "role": "neutral",
+        "displayName": "Landing Ground End",
+        "canonical": "oklch(92% 0.05 190)",
+        "tonalRamp": [
+          "oklch(15.00% 0.05000 190.00)",
+          "oklch(26.43% 0.05000 190.00)",
+          "oklch(37.86% 0.05000 190.00)",
+          "oklch(49.29% 0.05000 190.00)",
+          "oklch(60.71% 0.05000 190.00)",
+          "oklch(72.14% 0.05000 190.00)",
+          "oklch(83.57% 0.05000 190.00)",
+          "oklch(95.00% 0.05000 190.00)"
+        ]
+      },
+      "landing-glass": {
+        "role": "neutral",
+        "displayName": "Landing Glass",
+        "canonical": "rgb(255 255 255 / 50%)",
+        "tonalRamp": [
+          "oklch(15.00% 0.00000 89.88)",
+          "oklch(26.43% 0.00000 89.88)",
+          "oklch(37.86% 0.00000 89.88)",
+          "oklch(49.29% 0.00000 89.88)",
+          "oklch(60.71% 0.00000 89.88)",
+          "oklch(72.14% 0.00000 89.88)",
+          "oklch(83.57% 0.00000 89.88)",
+          "oklch(95.00% 0.00000 89.88)"
+        ]
+      },
+      "landing-line": {
+        "role": "neutral",
+        "displayName": "Landing Line",
+        "canonical": "rgb(20 90 90 / 24%)",
+        "tonalRamp": [
+          "oklch(15.00% 0.06586 194.97)",
+          "oklch(26.43% 0.06586 194.97)",
+          "oklch(37.86% 0.06586 194.97)",
+          "oklch(49.29% 0.06586 194.97)",
+          "oklch(60.71% 0.06586 194.97)",
+          "oklch(72.14% 0.06586 194.97)",
+          "oklch(83.57% 0.06586 194.97)",
+          "oklch(95.00% 0.06586 194.97)"
+        ]
+      },
+      "landing-focus": {
+        "role": "primary",
+        "displayName": "Landing Focus",
+        "canonical": "#287c70",
+        "tonalRamp": [
+          "oklch(15.00% 0.08152 181.81)",
+          "oklch(26.43% 0.08152 181.81)",
+          "oklch(37.86% 0.08152 181.81)",
+          "oklch(49.29% 0.08152 181.81)",
+          "oklch(60.71% 0.08152 181.81)",
+          "oklch(72.14% 0.08152 181.81)",
+          "oklch(83.57% 0.08152 181.81)",
+          "oklch(95.00% 0.08152 181.81)"
+        ]
+      },
+      "app-primary": {
+        "role": "primary",
+        "displayName": "App Primary",
+        "canonical": "#14532d",
+        "tonalRamp": [
+          "oklch(15.00% 0.08962 152.54)",
+          "oklch(26.43% 0.08962 152.54)",
+          "oklch(37.86% 0.08962 152.54)",
+          "oklch(49.29% 0.08962 152.54)",
+          "oklch(60.71% 0.08962 152.54)",
+          "oklch(72.14% 0.08962 152.54)",
+          "oklch(83.57% 0.08962 152.54)",
+          "oklch(95.00% 0.08962 152.54)"
+        ]
+      },
+      "app-background": {
+        "role": "neutral",
+        "displayName": "App Background",
+        "canonical": "#f9f8f3",
+        "tonalRamp": [
+          "oklch(15.00% 0.00669 97.35)",
+          "oklch(26.43% 0.00669 97.35)",
+          "oklch(37.86% 0.00669 97.35)",
+          "oklch(49.29% 0.00669 97.35)",
+          "oklch(60.71% 0.00669 97.35)",
+          "oklch(72.14% 0.00669 97.35)",
+          "oklch(83.57% 0.00669 97.35)",
+          "oklch(95.00% 0.00669 97.35)"
+        ]
+      },
+      "app-surface": {
+        "role": "neutral",
+        "displayName": "App Surface",
+        "canonical": "#fdfdfb",
+        "tonalRamp": [
+          "oklch(15.00% 0.00263 106.45)",
+          "oklch(26.43% 0.00263 106.45)",
+          "oklch(37.86% 0.00263 106.45)",
+          "oklch(49.29% 0.00263 106.45)",
+          "oklch(60.71% 0.00263 106.45)",
+          "oklch(72.14% 0.00263 106.45)",
+          "oklch(83.57% 0.00263 106.45)",
+          "oklch(95.00% 0.00263 106.45)"
+        ]
+      },
+      "app-foreground": {
+        "role": "neutral",
+        "displayName": "App Foreground",
+        "canonical": "#1f1f1d",
+        "tonalRamp": [
+          "oklch(15.00% 0.00374 106.68)",
+          "oklch(26.43% 0.00374 106.68)",
+          "oklch(37.86% 0.00374 106.68)",
+          "oklch(49.29% 0.00374 106.68)",
+          "oklch(60.71% 0.00374 106.68)",
+          "oklch(72.14% 0.00374 106.68)",
+          "oklch(83.57% 0.00374 106.68)",
+          "oklch(95.00% 0.00374 106.68)"
+        ]
+      },
+      "app-accent": {
+        "role": "primary",
+        "displayName": "App Accent",
+        "canonical": "#e08f21",
+        "tonalRamp": [
+          "oklch(15.00% 0.14871 67.55)",
+          "oklch(26.43% 0.14871 67.55)",
+          "oklch(37.86% 0.14871 67.55)",
+          "oklch(49.29% 0.14871 67.55)",
+          "oklch(60.71% 0.14871 67.55)",
+          "oklch(72.14% 0.14871 67.55)",
+          "oklch(83.57% 0.14871 67.55)",
+          "oklch(95.00% 0.14871 67.55)"
+        ]
+      },
+      "app-border": {
+        "role": "neutral",
+        "displayName": "App Border",
+        "canonical": "#d5d1c2",
+        "tonalRamp": [
+          "oklch(15.00% 0.02081 94.56)",
+          "oklch(26.43% 0.02081 94.56)",
+          "oklch(37.86% 0.02081 94.56)",
+          "oklch(49.29% 0.02081 94.56)",
+          "oklch(60.71% 0.02081 94.56)",
+          "oklch(72.14% 0.02081 94.56)",
+          "oklch(83.57% 0.02081 94.56)",
+          "oklch(95.00% 0.02081 94.56)"
+        ]
+      },
+      "app-input-border": {
+        "role": "neutral",
+        "displayName": "App Input Border",
+        "canonical": "#7d7d76",
+        "tonalRamp": [
+          "oklch(15.00% 0.01045 106.72)",
+          "oklch(26.43% 0.01045 106.72)",
+          "oklch(37.86% 0.01045 106.72)",
+          "oklch(49.29% 0.01045 106.72)",
+          "oklch(60.71% 0.01045 106.72)",
+          "oklch(72.14% 0.01045 106.72)",
+          "oklch(83.57% 0.01045 106.72)",
+          "oklch(95.00% 0.01045 106.72)"
+        ]
+      },
+      "app-muted": {
+        "role": "neutral",
+        "displayName": "App Muted",
+        "canonical": "#f2f0e8",
+        "tonalRamp": [
+          "oklch(15.00% 0.01084 95.17)",
+          "oklch(26.43% 0.01084 95.17)",
+          "oklch(37.86% 0.01084 95.17)",
+          "oklch(49.29% 0.01084 95.17)",
+          "oklch(60.71% 0.01084 95.17)",
+          "oklch(72.14% 0.01084 95.17)",
+          "oklch(83.57% 0.01084 95.17)",
+          "oklch(95.00% 0.01084 95.17)"
+        ]
+      },
+      "app-muted-foreground": {
+        "role": "neutral",
+        "displayName": "App Muted Foreground",
+        "canonical": "#5f5f59",
+        "tonalRamp": [
+          "oklch(15.00% 0.00940 106.75)",
+          "oklch(26.43% 0.00940 106.75)",
+          "oklch(37.86% 0.00940 106.75)",
+          "oklch(49.29% 0.00940 106.75)",
+          "oklch(60.71% 0.00940 106.75)",
+          "oklch(72.14% 0.00940 106.75)",
+          "oklch(83.57% 0.00940 106.75)",
+          "oklch(95.00% 0.00940 106.75)"
+        ]
+      },
+      "app-danger-soft": {
+        "role": "primary",
+        "displayName": "App Danger Soft",
+        "canonical": "#9c5713",
+        "tonalRamp": [
+          "oklch(15.00% 0.11782 58.34)",
+          "oklch(26.43% 0.11782 58.34)",
+          "oklch(37.86% 0.11782 58.34)",
+          "oklch(49.29% 0.11782 58.34)",
+          "oklch(60.71% 0.11782 58.34)",
+          "oklch(72.14% 0.11782 58.34)",
+          "oklch(83.57% 0.11782 58.34)",
+          "oklch(95.00% 0.11782 58.34)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "landing-display": {
+        "displayName": "Landing display",
+        "purpose": "Hero headline on the approved marketing surface."
+      },
+      "landing-headline": {
+        "displayName": "Landing headline",
+        "purpose": "Section headings."
+      },
+      "app-body": {
+        "displayName": "Existing application type",
+        "purpose": "Preserve Plus Jakarta Sans on authentication and application surfaces."
+      }
+    },
+    "shadows": [
+      {
+        "name": "landing-sheet",
+        "value": "inset 0 1px 0 rgb(255 255 255 / 55%), 0 30px 70px rgb(20 100 100 / 14%)",
+        "purpose": "Frosted program sheet."
+      },
+      {
+        "name": "app-card",
+        "value": "0 1px 2px rgb(14 61 34 / 0.04), 0 8px 24px rgb(14 61 34 / 0.06)",
+        "purpose": "Existing application cards."
+      },
+      {
+        "name": "app-raised",
+        "value": "0 2px 4px rgb(14 61 34 / 0.06), 0 16px 40px rgb(14 61 34 / 0.1)",
+        "purpose": "Existing raised cards."
+      }
+    ],
+    "motion": [
+      {
+        "name": "landing-ease",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Landing button and day transforms."
+      },
+      {
+        "name": "button-feedback",
+        "value": "120ms",
+        "purpose": "Landing and app press feedback; landing hover lift."
+      },
+      {
+        "name": "day-feedback",
+        "value": "140ms",
+        "purpose": "Fine-pointer landing day lift."
+      },
+      {
+        "name": "section-reveal",
+        "value": "240ms",
+        "purpose": "Opacity and 12px translation; disabled for reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "landing-mobile",
+        "value": "760px"
+      },
+      {
+        "name": "landing-compact-navigation",
+        "value": "360px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Landing action",
+      "kind": "button",
+      "refersTo": "landing-button",
+      "description": "Marketing pill; its palette is local to the landing.",
+      "html": "<a class=\"ds-landing-button\" href=\"#start\">Start your check-in</a>",
+      "css": ".ds-landing-button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:.85rem 1.6rem;border-radius:999px;background:oklch(27% .05 195);color:oklch(97% .025 175);font:600 1rem/1.55 -apple-system,BlinkMacSystemFont,\"SF Pro Text\",system-ui,\"Segoe UI\",sans-serif;letter-spacing:.005em;text-decoration:none;transition:transform 120ms cubic-bezier(.23,1,.32,1)}.ds-landing-button:focus-visible{outline:2px solid #287c70;outline-offset:5px}.ds-landing-button:active{transform:scale(.97)}@media(hover:hover) and (pointer:fine){.ds-landing-button:hover{transform:translateY(-2px)}}@media(prefers-reduced-motion:reduce){.ds-landing-button{transition:none}.ds-landing-button:hover,.ds-landing-button:active{transform:none}}"
+    },
+    {
+      "name": "Landing navigation",
+      "kind": "nav",
+      "description": "Fixed navigation shown here as a self-contained static specimen.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Example navigation\"><a class=\"ds-brand\" href=\"#home\">MannMitra</a><div><a href=\"#signin\">Sign in</a><a class=\"ds-start\" href=\"#signup\">Get started</a></div></nav>",
+      "css": ".ds-nav{display:flex;justify-content:space-between;align-items:center;gap:.7rem;padding:.85rem 1rem 1.1rem;background:linear-gradient(rgb(255 255 255 / 50%),transparent);backdrop-filter:blur(16px) saturate(170%);font:500 .95rem/1.55 -apple-system,BlinkMacSystemFont,\"SF Pro Text\",system-ui,\"Segoe UI\",sans-serif;color:oklch(27% .05 195)}.ds-nav div{display:flex;gap:1.1rem;align-items:center}.ds-nav a{display:inline-flex;align-items:center;min-height:44px;color:inherit;text-decoration:none}.ds-nav .ds-brand{font-size:1.1rem;font-weight:650;letter-spacing:-.02em}.ds-nav .ds-start{padding:.55rem 1.1rem;border-radius:999px;background:oklch(27% .05 195);color:oklch(97% .025 175);font-size:.92rem;font-weight:600}.ds-nav a:hover{text-decoration:underline;text-underline-offset:4px}.ds-nav a:focus-visible{outline:2px solid #287c70;outline-offset:5px}@media(prefers-reduced-transparency:reduce){.ds-nav{backdrop-filter:none;background:oklch(97% .025 175)}}"
+    },
+    {
+      "name": "Landing program sheet",
+      "kind": "card",
+      "refersTo": "landing-sheet",
+      "description": "Frosted container and representative main, lighter, and final days.",
+      "html": "<div class=\"ds-sheet\"><div class=\"ds-days\" aria-label=\"Example practice, lighter activity, and final check-in days\"><span class=\"ds-practice\">1</span><span class=\"ds-light\">2</span><span class=\"ds-check\">30</span></div></div>",
+      "css": ".ds-sheet{padding:clamp(1.1rem,3vw,2.2rem);border-radius:1.75rem;background:rgb(255 255 255 / 50%);backdrop-filter:blur(26px) saturate(170%);box-shadow:inset 0 1px 0 rgb(255 255 255 / 55%),0 30px 70px rgb(20 100 100 / 14%);font:600 .72rem/1.55 -apple-system,BlinkMacSystemFont,\"SF Pro Text\",system-ui,\"Segoe UI\",sans-serif}.ds-days{display:flex;gap:.35rem;padding:1.4rem .3rem .6rem}.ds-days span{display:grid;place-items:end center;flex:1;height:3.2rem;padding-bottom:.4rem;border-radius:.8rem;transition:transform 140ms cubic-bezier(.23,1,.32,1);font-variant-numeric:tabular-nums}.ds-practice{background:linear-gradient(#347f73,#3b7960);color:white}.ds-light{box-shadow:inset 0 0 0 1px rgb(20 90 90 / 24%);color:oklch(44% .04 195)}.ds-check{background:oklch(27% .05 195);color:oklch(97% .025 175)}@media(hover:hover) and (pointer:fine){.ds-days span:hover{transform:translateY(-8px) scale(1.12)}}@media(prefers-reduced-motion:reduce){.ds-days span{transition:none}.ds-days span:hover{transform:none}}@media(prefers-reduced-transparency:reduce){.ds-sheet{backdrop-filter:none;background:oklch(97% .025 175)}}@media(prefers-contrast:more){.ds-sheet,.ds-light{box-shadow:inset 0 0 0 1px oklch(27% .05 195)}}"
+    },
+    {
+      "name": "App primary button",
+      "kind": "button",
+      "refersTo": "app-button-primary",
+      "description": "Existing Forest application primitive, medium size.",
+      "html": "<button class=\"ds-example ds-app-primary\" type=\"button\">Continue</button>",
+      "css": ".ds-app-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:var(--radius-control,999px);height:44px;padding:0 24px;font:600 14px/20px var(--font-sans, \"Plus Jakarta Sans\", ui-sans-serif, system-ui, sans-serif);background:var(--color-primary,#14532d);color:var(--color-primary-foreground,#fdfdfb);transition:transform 120ms ease-out}.ds-app-primary:hover{background:var(--color-evergreen-700,#1f523d)}.ds-app-primary:active{transform:scale(.97)}.ds-app-primary:disabled{opacity:.5;pointer-events:none}.ds-example:focus-visible{outline:2px solid var(--color-primary,#14532d);outline-offset:2px}@media(prefers-reduced-motion:reduce){.ds-app-primary{transition:none}.ds-app-primary:active{transform:none}}"
+    },
+    {
+      "name": "App secondary button",
+      "kind": "button",
+      "refersTo": "app-button-secondary",
+      "description": "Existing Forest application primitive, medium size.",
+      "html": "<button class=\"ds-example ds-app-secondary\" type=\"button\">Continue</button>",
+      "css": ".ds-app-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--color-border,#d5d1c2);border-radius:var(--radius-control,999px);height:44px;padding:0 24px;font:600 14px/20px var(--font-sans, \"Plus Jakarta Sans\", ui-sans-serif, system-ui, sans-serif);background:var(--color-surface,#fdfdfb);color:var(--color-foreground,#1f1f1d);transition:transform 120ms ease-out}.ds-app-secondary:hover{background:var(--color-muted,#f2f0e8)}.ds-app-secondary:active{transform:scale(.97)}.ds-app-secondary:disabled{opacity:.5;pointer-events:none}.ds-example:focus-visible{outline:2px solid var(--color-primary,#14532d);outline-offset:2px}@media(prefers-reduced-motion:reduce){.ds-app-secondary{transition:none}.ds-app-secondary:active{transform:none}}"
+    },
+    {
+      "name": "App ghost button",
+      "kind": "button",
+      "refersTo": "app-button-ghost",
+      "description": "Existing Forest application primitive, medium size.",
+      "html": "<button class=\"ds-example ds-app-ghost\" type=\"button\">Continue</button>",
+      "css": ".ds-app-ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:var(--radius-control,999px);height:44px;padding:0 24px;font:600 14px/20px var(--font-sans, \"Plus Jakarta Sans\", ui-sans-serif, system-ui, sans-serif);background:transparent;color:var(--color-primary,#14532d);transition:transform 120ms ease-out}.ds-app-ghost:hover{background:var(--color-evergreen-50,#f0f7f2)}.ds-app-ghost:active{transform:scale(.97)}.ds-app-ghost:disabled{opacity:.5;pointer-events:none}.ds-example:focus-visible{outline:2px solid var(--color-primary,#14532d);outline-offset:2px}@media(prefers-reduced-motion:reduce){.ds-app-ghost{transition:none}.ds-app-ghost:active{transform:none}}"
+    },
+    {
+      "name": "App field",
+      "kind": "input",
+      "refersTo": "app-input",
+      "description": "Existing labeled field with calm helper text.",
+      "html": "<div class=\"ds-field\"><label for=\"ds-email\">Email</label><input class=\"ds-example\" id=\"ds-email\" type=\"email\" placeholder=\"you@example.com\" aria-describedby=\"ds-help\"><p id=\"ds-help\">Use the email for your account.</p></div>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:6px;font-family:var(--font-sans, \"Plus Jakarta Sans\", ui-sans-serif, system-ui, sans-serif);color:var(--color-foreground,#1f1f1d)}.ds-field label{font-size:14px;line-height:20px;font-weight:600}.ds-field input{height:44px;border:1px solid var(--color-input-border,#7d7d76);border-radius:var(--radius-card,16px);background:var(--color-surface,#fdfdfb);padding:0 16px;font:400 16px/24px var(--font-sans, \"Plus Jakarta Sans\", ui-sans-serif, system-ui, sans-serif);color:inherit}.ds-field input::placeholder{color:var(--color-placeholder,#5f5f59)}.ds-field input[aria-invalid=true]{border-color:var(--color-danger-soft,#9c5713)}.ds-field input:disabled{opacity:.5}.ds-field p{margin:0;font-size:14px;line-height:20px;color:var(--color-muted-foreground,#5f5f59)}.ds-example:focus-visible{outline:2px solid var(--color-primary,#14532d);outline-offset:2px}"
+    },
+    {
+      "name": "App card",
+      "kind": "card",
+      "refersTo": "app-card",
+      "description": "Existing Forest card; callers provide content padding.",
+      "html": "<div class=\"ds-card\">Card surface</div>",
+      "css": ".ds-card{border-radius:var(--radius-card,16px);border:1px solid var(--color-border,#d5d1c2);background:var(--color-surface,#fdfdfb);color:var(--color-foreground,#1f1f1d);font-family:var(--font-sans, \"Plus Jakarta Sans\", ui-sans-serif, system-ui, sans-serif);box-shadow:var(--shadow-card,0 1px 2px rgb(14 61 34 / .04),0 8px 24px rgb(14 61 34 / .06))}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Fluid Glass",
+    "overview": "The public landing uses the user's selected Fluid Glass HTML: spacious mint ground, deep teal text, translucent surfaces, and a gently floating glass orb. The artwork connects five viewport-height sections while the text and account actions remain directly usable. This name comes from the supplied reference, not an invented brand workshop.\n\nThe existing authentication and application primitives retain their Forest direction: warm bone surfaces, evergreen controls, amber emphasis, Plus Jakarta Sans, and Geist Mono numerics. The landing is a scoped, approved surface; its local palette and system typography do not replace the global application tokens. Both surfaces support a calm, non-clinical product with readable controls and restrained feedback.",
+    "keyCharacteristics": [
+      "Spacious mint landing with deep teal pills and translucent navigation.",
+      "Procedural glass artwork with a CSS fallback.",
+      "Existing Forest authentication surfaces remain visually distinct.",
+      "Light theme, calm language, visible focus, and reduced-motion support."
+    ],
+    "rules": [
+      {
+        "name": "The Surface Scope Rule",
+        "body": "Apply landing tokens inside the marketing landing only; preserve existing Forest tokens in authentication and application components.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "**Do** preserve the landing's scoped Fluid Glass palette and existing Forest authentication palette.",
+      "**Do** keep body copy legible over artwork and preserve visible keyboard focus.",
+      "**Do** provide static artwork and immediately visible content before enhancement.",
+      "**Do** honor reduced motion, reduced transparency, and increased contrast preferences.",
+      "**Do** use calm, non-alarming wording and preserve access to support."
+    ],
+    "donts": [
+      "**Don't** apply the landing's font stack or mint glass treatment globally.",
+      "**Don't** turn decorative orb colors into additional semantic UI accents.",
+      "**Don't** intercept scrolling or make artwork necessary to understand content.",
+      "**Don't** add red-alarm auth errors, shaming streak messages, or em dashes in visible copy."
+    ]
+  }
+}

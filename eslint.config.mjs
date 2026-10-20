@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "test-results/**",
     "playwright-report/**",
+    ".impeccable/review/**",
   ]),
   // Must be last: disables stylistic rules Prettier owns.
   prettier,

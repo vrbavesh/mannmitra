@@ -5,7 +5,7 @@
 
 ## Where we are
 
-**Wave B — Step 7 COMPLETE. The real Google-enabled matrix passed: password-account collision rejected and unlinked with zero sessions, new Google user reached onboarding, returning Google user reused the same account through a fresh OAuth callback. Temporary accounts, profiles, and sessions were removed. Ponytail review fixed stale browser-cookie cleanup on conflict. Final verification: lint, typecheck, build, 173 unit/contract tests and 3 production browser checks. Wave A audit remains closed; Step 8 (3D landing and motion) is next. Nothing pushed.**
+**Wave B COMPLETE — Step 8 implements the user's Fluid Glass landing design. Final verification passed: lint, typecheck, production build, 176 unit/contract tests and 8 browser checks. Lighthouse mobile LCP 2.34s, accessibility 100, best practices 100, CLS 0. Ponytail review and Wave B audit completed; independent visual reviewer cleared the companion corrections. Step 9 (onboarding) is next. Changes committed locally; nothing pushed.**
 
 ## Done
 
@@ -18,7 +18,8 @@
 | 4 API contract + server-route conventions + rate limiting | `b5011bd`                     | `npm run generate:api-types` green; `npm run verify` green (lint, typecheck, build, 110 tests: 47 contract + 16 server + 47 pre-existing); `/ponytail-review`: ship after 3 fixes (composed rate-limit response, removed dead errorEnvelopeSchema, documented clientIp platform reliance) |
 | 5 Email sign-up + OTP verification                        | `fef4f01` (+close-out)        | Hosted custom SMTP + `{{ .Token }}` template + 120s expiry + 6-digit OTP configured; live loop signup → OTP request → verify → `/onboarding` with `email_confirmed_at` set; `npm run verify` green (128 tests); `/ponytail-review`: ship after adding rate-limit + fail-open tests        |
 | 6 Sign-in + password/username recovery                    | `99ea3f7` (+close-out)        | Email + username sign-in, recovery scope, password replacement, username reveal, and 10/10-minute rate limit live-verified; both OTP templates confirmed; `npm run verify` green (151 tests); `/ponytail-review`: ship after equalizing username lookup timing                            |
-| 7 Google sign-in + same-email enforcement | `663ac50` (+closeout) | Real `google:enabled` matrix passed for collision/new/returning cases; fixtures removed; review fixed old cookie cleanup; final verify green (173 unit/contract tests, 3 production browser checks). |
+| 7 Google sign-in + same-email enforcement                 | `663ac50` (+closeout)         | Real `google:enabled` matrix passed for collision/new/returning cases; fixtures removed; review fixed old cookie cleanup; final verify green (173 unit/contract tests, 3 production browser checks).                                                                                      |
+| 8 Fluid Glass landing + motion + Wave B audit | Closing Step 8 commit | Final verify: 176 unit/contract tests, 8 browser checks; Lighthouse LCP 2.34s, accessibility/best practices 100, CLS 0; Ponytail review/audit completed; visual corrections cleared. |
 
 ## Live verification evidence (Step 5)
 
@@ -35,7 +36,7 @@ Server logs confirmed both request-route 200s and the verify 200; no `[otp]` or 
 
 ## In flight
 
-Nothing. Step 7 is closed. The implementation is in `663ac50`; the closeout includes real-provider evidence and the reviewed callback cookie-cleanup fix. See [the live matrix report](docs/verification/step7-google-matrix.md). Wave A's audit remediation remains closed.
+Nothing. Step 8 is closed. See `docs/verification/step8-fluid-glass.md`, its desktop/mobile/fallback screenshots, and `plans/audits/wave-b-ponytail-audit.md`. The supplied HTML is preserved as the design reference. Step 7 and Wave A remain closed.
 
 ## Live verification evidence (Step 6)
 
@@ -65,7 +66,7 @@ Mode **`google:enabled`**, real browser PKCE flow, approved inbox only. See [ful
 
 ## Next up
 
-**Step 8 — Landing page: 3D spectacle and motion.** Read the blueprint's Step 8 context brief and the selected design/motion skills. Replace the temporary entry page with the required responsive landing, React Three Fiber hero, and reduced-motion/no-WebGL fallback. Preserve the working Sign Up/Sign In entry points. At Wave B completion, run the required repo Ponytail audit. Commit each verified step locally; push only with explicit user approval. Monitor both usage windows and save a handoff/stop at 5% remaining. Never save passwords in files or the browser; use only the approved real test inbox when authentication testing is needed.
+**Step 9 — Onboarding flow (Wave C).** Read the blueprint's Step 9 context brief and spec §4. Implement username availability, editable display name, gender mapping, age confirmation, required consent and optional reminder time; save securely and transition to `/pretest`. Update the OpenAPI contract before implementing server routes. Launch Gate G3 (minimum age/legal review) remains unresolved and blocks public launch. Preserve the reviewed landing and existing auth. Commit each verified step locally; push only with explicit approval. Monitor both usage windows and save a handoff/stop at 5% remaining. Never save passwords; use only the approved real inbox for auth checks.
 
 ## Open blockers (operator, §6)
 
@@ -91,7 +92,7 @@ Mode **`google:enabled`**, real browser PKCE flow, approved inbox only. See [ful
 - **Step 7: `/signin` is dynamic.** It reads `?notice=` for the calm Google notices (`instant = false`), so the conflict copy is server-rendered instead of set in an effect (which the React Compiler lint rejects).
 - **Step 7: `npm run generate:api-types` now prettier-formats its output.** The committed `src/generated/api.ts` was 2-space formatted, so a raw regeneration produced a 1,300-line noise diff; the script ends with `prettier --write` to keep the diff honest.
 - **Step 7: manual linking was verified by probing the endpoint, not by reading the dashboard toggle.** `DELETE /auth/v1/user/identities/{id}` with a real session answered `422 single_identity_not_deletable`, which means the request cleared `requireManualLinkingEnabled`; a project with manual linking off answers `manual_linking_disabled` instead. Reuse this probe whenever that setting's state is in doubt, since no settings endpoint exposes it.
-- **Step 7: case (c) has to run before cases (a)/(b), and its target account has to be deleted in between.** Supabase auto-links a verified Google email to any matching password account, so while that account exists a Google sign-in is *always* a conflict — case (a) cannot produce a new user until it is gone. Getting this order wrong looks like a case (a) failure but is correct behaviour.
+- **Step 7: case (c) has to run before cases (a)/(b), and its target account has to be deleted in between.** Supabase auto-links a verified Google email to any matching password account, so while that account exists a Google sign-in is _always_ a conflict — case (a) cannot produce a new user until it is gone. Getting this order wrong looks like a case (a) failure but is correct behaviour.
 
 - **Wave A audit remediation, 2026-10-19:** composite ownership foreign keys cover every program/session reference. Programs, reports, and risk events are read-only to ordinary clients. Steps 11/12/16 must implement their writers through authenticated server operations with ownership, screening-kind, timing, and stage checks; do not re-enable direct client lifecycle mutations. Mood program deletion clears only `program_id`, preserving `user_id`. Hosted migration `20261019123332` is recorded locally with the connector's canonical version.
 - **Wave A test gate:** `npm run verify` now includes three Playwright checks against the production build. Browser artifacts are excluded from lint. The hosted RLS suite remains a separate network-enabled command (58 tests), with storage cleanup and cascade assertions. Local Supabase Auth settings/templates were statically checked; no local Docker/CLI is installed for an email runtime test.

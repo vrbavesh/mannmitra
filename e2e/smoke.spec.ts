@@ -2,13 +2,18 @@ import { expect, test } from "@playwright/test";
 
 test("entry links open the signup and sign-in forms", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "MannMitra" })).toBeVisible();
-  await page.getByRole("link", { name: "Create an account", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Understand how you feel. Gently." }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Start your check-in", exact: true }).first().click();
   await expect(page).toHaveURL(/\/signup$/);
   await expect(page.getByLabel("Email address", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Confirm password", { exact: true })).toBeVisible();
   await page.goto("/");
-  await page.getByRole("link", { name: "Sign in", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("link", { name: "Sign in", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/signin$/);
   await expect(page.getByLabel("Email or username", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
@@ -60,7 +65,12 @@ test("entry navigation works on mobile with reduced motion", async ({ page }) =>
   await page.setViewportSize({ width: 375, height: 812 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await page.getByRole("link", { name: "Sign in", exact: true }).click();
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator("[data-orb-still]")).toBeVisible();
+  await page
+    .getByRole("navigation", { name: "Main navigation" })
+    .getByRole("link", { name: "Sign in", exact: true })
+    .click();
   await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
   const duration = await page
     .locator("main > div")

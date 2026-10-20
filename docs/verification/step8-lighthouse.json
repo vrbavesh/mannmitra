@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-20",
+  "url": "http://localhost:3100/",
+  "lighthouseVersion": "13.5.0",
+  "formFactor": "mobile",
+  "performance": 0.87,
+  "accessibility": 1,
+  "bestPractices": 1,
+  "lcpMs": 2339.334,
+  "cls": 0,
+  "totalBlockingMs": 449,
+  "renderer": "default enhanced landing, Chromium software WebGL",
+  "emulation": {
+    "mobile": true,
+    "width": 412,
+    "height": 823,
+    "deviceScaleFactor": 1.75,
+    "disabled": false
+  }
+}
