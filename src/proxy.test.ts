@@ -50,7 +50,10 @@ describe("stage proxy", () => {
     expect(response.headers.get("location")).toBe("http://localhost:3000/signup/verify");
   });
 
-  it("resolves a verified user's stage from profile and screening rows", async () => {
+  it.each([
+    [false, "/onboarding"],
+    [true, "/pretest"],
+  ])("routes onboarding_completed=%s to %s", async (completed, destination) => {
     getUser.mockResolvedValue({
       data: { user: { id: "user-id", email_confirmed_at: "2026-10-01T00:00:00Z" } },
       error: null,
@@ -69,14 +72,14 @@ describe("stage proxy", () => {
     from.mockImplementation((table: string) =>
       query(
         table === "profiles"
-          ? { data: { onboarding_completed: true, timezone: "Asia/Kolkata" }, error: null }
+          ? { data: { onboarding_completed: completed, timezone: "Asia/Kolkata" }, error: null }
           : table === "screening_sessions"
             ? { data: [], error: null }
             : { data: null, error: null },
       ),
     );
     const response = await proxy(request("/home"));
-    expect(response.headers.get("location")).toBe("http://localhost:3000/pretest");
+    expect(response.headers.get("location")).toBe(`http://localhost:3000${destination}`);
     expect(from).toHaveBeenCalledWith("profiles");
     expect(from).toHaveBeenCalledWith("screening_sessions");
     expect(from).toHaveBeenCalledWith("programs");

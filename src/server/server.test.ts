@@ -9,6 +9,7 @@ import {
 import { clientIp } from "@/server/rateLimit";
 import { respond } from "@/server/respond";
 import { z } from "zod";
+import { redirect } from "next/navigation";
 
 describe("errors", () => {
   it("serializes the contract envelope with code, message and optional details", () => {
@@ -52,6 +53,14 @@ describe("errors", () => {
   it("passes ApiError through untouched", () => {
     const response = errorResponse(errors.codeExpired());
     expect(response.status).toBe(410);
+  });
+
+  it("lets Next.js handle its own control-flow errors", () => {
+    try {
+      redirect("/signin");
+    } catch (error) {
+      expect(() => errorResponse(error)).toThrow(error as Error);
+    }
   });
 
   it("carries Retry-After and X-RateLimit headers on rate-limit errors", () => {

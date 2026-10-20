@@ -4,6 +4,50 @@
  */
 
 export interface paths {
+  "/api/onboarding": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Load the editable display name and current stage
+     * @description Requires a verified session outside password recovery. Name is empty when unset.
+     */
+    get: operations["getOnboarding"];
+    put?: never;
+    /**
+     * Save the completed profile and continue to screening
+     * @description Requires a verified session outside password recovery. All six steps are validated server-side. Other and prefer_not_to_say both store gender=other. Age confirmation currently means at least 18 (provisional; legal launch gate G3 remains open). Consent time comes from the server. The profile is saved atomically only while onboarding is incomplete; retries after completion return the current stage without overwriting. A username claimed between check and save returns 422 for username. Reminder time is local to the existing profile timezone. No reminder is scheduled by this operation. Rate limit: 10 saves per 10 minutes per user.
+     */
+    post: operations["completeOnboarding"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/onboarding/username": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Check whether a valid username is available
+     * @description Verified users with incomplete onboarding only, outside password recovery. Returns only a boolean, never identity or email. This is advisory; the unique database index decides at save time. Rate limit: 30 checks per minute per user. Completed profiles return 422 without a lookup.
+     */
+    get: operations["checkUsernameAvailability"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/auth/signin": {
     parameters: {
       query?: never;
@@ -148,6 +192,30 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    Username: string;
+    UsernameAvailability: {
+      available: boolean;
+    };
+    OnboardingProfile: {
+      display_name: string;
+      timezone: string;
+      stage: components["schemas"]["Stage"];
+    };
+    OnboardingRequest: {
+      username: components["schemas"]["Username"];
+      display_name: string;
+      /** @enum {string} */
+      gender: "male" | "female" | "other" | "prefer_not_to_say";
+      /** @constant */
+      age_confirmed: true;
+      /** @constant */
+      terms_accepted: true;
+      /** @constant */
+      privacy_accepted: true;
+      /** @constant */
+      non_diagnostic_accepted: true;
+      reminder_time: string | null;
+    };
     /**
      * @description Pipeline stage the client uses to route (mirrors src/lib/stage.ts).
      * @enum {string}
@@ -532,6 +600,85 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+  getOnboarding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Profile details for the signed-in user only. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["OnboardingProfile"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["EmailUnverified"];
+      500: components["responses"]["InternalError"];
+    };
+  };
+  completeOnboarding: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["OnboardingRequest"];
+      };
+    };
+    responses: {
+      /** @description Saved, or already completed; client routes by stage. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SigninResponse"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["EmailUnverified"];
+      422: components["responses"]["ValidationFailed"];
+      429: components["responses"]["RateLimited"];
+      500: components["responses"]["InternalError"];
+    };
+  };
+  checkUsernameAvailability: {
+    parameters: {
+      query: {
+        username: components["schemas"]["Username"];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Availability at the moment of the check. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UsernameAvailability"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["EmailUnverified"];
+      422: components["responses"]["ValidationFailed"];
+      429: components["responses"]["RateLimited"];
+      500: components["responses"]["InternalError"];
+    };
+  };
   signIn: {
     parameters: {
       query?: never;

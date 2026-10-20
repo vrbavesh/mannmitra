@@ -1,5 +1,6 @@
 import "server-only";
 import { NextResponse } from "next/server";
+import { unstable_rethrow } from "next/navigation";
 import type { components } from "@/generated/api";
 
 /** Machine codes, sourced from the contract (contracts/openapi.yaml). */
@@ -85,6 +86,7 @@ export const errors = {
 
 /** Map any thrown value to a contract-valid response. Never leaks internals. */
 export function errorResponse(thrown: unknown, headers?: HeadersInit): NextResponse {
+  unstable_rethrow(thrown);
   if (thrown instanceof ApiError) return thrown.toResponse(headers);
   console.error("[api] unhandled error", thrown);
   return errors.internal().toResponse(headers);

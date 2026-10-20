@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { components } from "@/generated/api";
 import { errors } from "@/server/errors";
+import { usernamePattern } from "@/lib/onboarding";
 
 type Schemas = components["schemas"];
 
@@ -56,6 +57,30 @@ export const otpVerifySchema: z.ZodType<Schemas["OtpVerifyRequest"]> = z.object(
 
 export const signinResponseSchema: z.ZodType<Schemas["SigninResponse"]> = z.object({
   stage: stageSchema,
+});
+
+export const usernameSchema: z.ZodType<Schemas["Username"]> = z.string().regex(usernamePattern);
+export const usernameAvailabilitySchema: z.ZodType<Schemas["UsernameAvailability"]> =
+  z.strictObject({
+    available: z.boolean(),
+  });
+export const onboardingProfileSchema: z.ZodType<Schemas["OnboardingProfile"]> = z.strictObject({
+  display_name: z.string(),
+  timezone: z.string(),
+  stage: stageSchema,
+});
+export const onboardingRequestSchema: z.ZodType<Schemas["OnboardingRequest"]> = z.strictObject({
+  username: usernameSchema,
+  display_name: z.string().min(1).max(80).regex(/\S/),
+  gender: z.enum(["male", "female", "other", "prefer_not_to_say"]),
+  age_confirmed: z.literal(true),
+  terms_accepted: z.literal(true),
+  privacy_accepted: z.literal(true),
+  non_diagnostic_accepted: z.literal(true),
+  reminder_time: z
+    .string()
+    .regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/)
+    .nullable(),
 });
 
 export const passwordUpdateSchema: z.ZodType<Schemas["PasswordUpdateRequest"]> = z.object({

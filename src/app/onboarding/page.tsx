@@ -1,5 +1,5 @@
-import { RouteShell } from "@/components/RouteShell";
+import { OnboardingForm } from "./OnboardingForm";
 
-export default function onboardingPage() {
-  return <RouteShell title="Get to know each other" description="A few details will help us make this space yours." />;
+export default function OnboardingPage() {
+  return <OnboardingForm />;
 }

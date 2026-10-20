@@ -100,6 +100,8 @@ describe("contract: route surface", () => {
       "/api/auth/otp/verify",
       "/api/auth/password",
       "/api/auth/signin",
+      "/api/onboarding",
+      "/api/onboarding/username",
       "/api/screening/sessions",
     ]);
   });
@@ -113,9 +115,71 @@ describe("contract: route surface", () => {
     }
   });
 
-  it("exposes no username-lookup route (enumeration surface stays zero)", () => {
+  it("exposes only the authenticated availability check, never email resolution", () => {
     const paths = Object.keys(doc.paths as object);
-    expect(paths.filter((p) => /resolve|lookup|username/i.test(p))).toEqual([]);
+    expect(paths.filter((p) => /resolve|lookup|username/i.test(p))).toEqual([
+      "/api/onboarding/username",
+    ]);
+  });
+});
+
+describe("contract: onboarding", () => {
+  const payload = {
+    username: "river_otter",
+    display_name: "River",
+    gender: "prefer_not_to_say",
+    age_confirmed: true,
+    terms_accepted: true,
+    privacy_accepted: true,
+    non_diagnostic_accepted: true,
+    reminder_time: null,
+  };
+
+  it("accepts complete consent and an optional local reminder time", () => {
+    const validate = schemaAt("/components/schemas/OnboardingRequest");
+    expect(validate(payload)).toBe(true);
+    expect(validate({ ...payload, reminder_time: "23:59" })).toBe(true);
+    expect(validate({ ...payload, reminder_time: "24:00" })).toBe(false);
+    expect(validate({ ...payload, display_name: "   " })).toBe(false);
+    expect(validate({ ...payload, timezone: "UTC" })).toBe(false);
+  });
+
+  it.each(["age_confirmed", "terms_accepted", "privacy_accepted", "non_diagnostic_accepted"])(
+    "rejects absent or false %s",
+    (field) => {
+      const validate = schemaAt("/components/schemas/OnboardingRequest");
+      expect(validate({ ...payload, [field]: false })).toBe(false);
+      const missing: Record<string, unknown> = { ...payload };
+      delete missing[field];
+      expect(validate(missing)).toBe(false);
+    },
+  );
+
+  it.each(["ABc", "a b", "ab", "a".repeat(21)])("rejects invalid username %s", (username) => {
+    expect(schemaAt("/components/schemas/Username")(username)).toBe(false);
+  });
+
+  it("defines availability, prefill, stage and error bodies", () => {
+    expect(responseSchema("/api/onboarding/username", "get", "200")({ available: false })).toBe(
+      true,
+    );
+    expect(
+      responseSchema(
+        "/api/onboarding/username",
+        "get",
+        "200",
+      )({ available: true, email: "private@example.com" }),
+    ).toBe(false);
+    expect(
+      responseSchema(
+        "/api/onboarding",
+        "get",
+        "200",
+      )({ display_name: "River", timezone: "Asia/Kolkata", stage: "needs_onboarding" }),
+    ).toBe(true);
+    expect(responseSchema("/api/onboarding", "post", "200")({ stage: "needs_pretest" })).toBe(true);
+    expect(responseSchema("/api/onboarding", "post", "422")(VALIDATION_422)).toBe(true);
+    expect(responseSchema("/api/onboarding/username", "get", "429")(RATE_LIMITED_429)).toBe(true);
   });
 });
 

@@ -6,9 +6,9 @@
 # Most reads/writes go through the Supabase client under RLS. Custom routes
 # exist only where the spec requires server-side power. Deliberate omissions:
 #   - There is NO /api/auth/resolve-username endpoint (or any public
-#     username-lookup route). Username -> email resolution is an internal
+#     username-to-email lookup route). Username -> email resolution is an internal
 #     server function inside POST /api/auth/signin, using the service key.
-#     Account-enumeration surface stays at zero.
+#     Availability checks only expose a boolean to verified onboarding users.
 #   - There is no generic file-download route; drawings are served from the
 #     private storage bucket under RLS folder policies.
 openapi: 3.1.0
@@ -26,7 +26,97 @@ servers:
 tags:
   - name: auth
   - name: screening
+  - name: onboarding
 paths:
+  /api/onboarding:
+    get:
+      tags: [onboarding]
+      operationId: getOnboarding
+      summary: Load the editable display name and current stage
+      description: Requires a verified session outside password recovery. Name is empty when unset.
+      responses:
+        "200":
+          description: Profile details for the signed-in user only.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OnboardingProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/EmailUnverified"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      tags: [onboarding]
+      operationId: completeOnboarding
+      summary: Save the completed profile and continue to screening
+      description: >
+        Requires a verified session outside password recovery. All six steps
+        are validated server-side. Other and prefer_not_to_say both store
+        gender=other. Age confirmation currently means at least 18 (provisional;
+        legal launch gate G3 remains open). Consent time comes from the server.
+        The profile is saved atomically only while onboarding is incomplete;
+        retries after completion return the current stage without overwriting.
+        A username claimed between check and save returns 422 for username.
+        Reminder time is local to the existing profile timezone. No reminder
+        is scheduled by this operation. Rate limit: 10 saves per 10 minutes per user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardingRequest"
+      responses:
+        "200":
+          description: Saved, or already completed; client routes by stage.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SigninResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/EmailUnverified"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/onboarding/username:
+    get:
+      tags: [onboarding]
+      operationId: checkUsernameAvailability
+      summary: Check whether a valid username is available
+      description: >
+        Verified users with incomplete onboarding only, outside password recovery.
+        Returns only a boolean, never identity or email. This is advisory; the
+        unique database index decides at save time. Rate limit: 30 checks per
+        minute per user. Completed profiles return 422 without a lookup.
+      parameters:
+        - name: username
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/Username"
+      responses:
+        "200":
+          description: Availability at the moment of the check.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsernameAvailability"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/EmailUnverified"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /api/auth/signin:
     post:
       tags: [auth]
@@ -316,6 +406,56 @@ paths:
           $ref: "#/components/responses/InternalError"
 components:
   schemas:
+    Username:
+      type: string
+      pattern: "^[a-z0-9_]{3,20}$"
+    UsernameAvailability:
+      type: object
+      additionalProperties: false
+      required: [available]
+      properties:
+        available: { type: boolean }
+    OnboardingProfile:
+      type: object
+      additionalProperties: false
+      required: [display_name, timezone, stage]
+      properties:
+        display_name: { type: string }
+        timezone: { type: string }
+        stage:
+          $ref: "#/components/schemas/Stage"
+    OnboardingRequest:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          username,
+          display_name,
+          gender,
+          age_confirmed,
+          terms_accepted,
+          privacy_accepted,
+          non_diagnostic_accepted,
+          reminder_time,
+        ]
+      properties:
+        username:
+          $ref: "#/components/schemas/Username"
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 80
+          pattern: "\\S"
+        gender:
+          type: string
+          enum: [male, female, other, prefer_not_to_say]
+        age_confirmed: { type: boolean, const: true }
+        terms_accepted: { type: boolean, const: true }
+        privacy_accepted: { type: boolean, const: true }
+        non_diagnostic_accepted: { type: boolean, const: true }
+        reminder_time:
+          type: [string, "null"]
+          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
     Stage:
       type: string
       description: Pipeline stage the client uses to route (mirrors src/lib/stage.ts).
