@@ -31,7 +31,9 @@ export type LimitName =
   | "username"
   | "onboarding"
   | "screening"
-  | "program";
+  | "program"
+  | "mood"
+  | "task";
 
 const LIMITS: Record<LimitName, { tokens: number; window: `${number} ${"s" | "m" | "h" | "d"}` }> =
   {
@@ -43,6 +45,8 @@ const LIMITS: Record<LimitName, { tokens: number; window: `${number} ${"s" | "m"
     onboarding: { tokens: 10, window: "10 m" },
     screening: { tokens: 10, window: "10 m" },
     program: { tokens: 10, window: "10 m" },
+    mood: { tokens: 30, window: "10 m" },
+    task: { tokens: 30, window: "10 m" },
   };
 
 export type RateLimitResult = {

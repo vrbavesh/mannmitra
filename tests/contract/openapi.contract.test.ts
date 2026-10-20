@@ -100,8 +100,10 @@ describe("contract: route surface", () => {
       "/api/auth/otp/verify",
       "/api/auth/password",
       "/api/auth/signin",
+      "/api/mood",
       "/api/onboarding",
       "/api/onboarding/username",
+      "/api/program/days/{day}/complete",
       "/api/programs",
       "/api/screening/sessions",
     ]);
@@ -145,6 +147,114 @@ describe("contract: program start", () => {
     expect(responseSchema("/api/programs", "post", "422")(VALIDATION_422)).toBe(true);
     expect(responseSchema("/api/programs", "post", "429")(RATE_LIMITED_429)).toBe(true);
     expect(responseSchema("/api/programs", "post", "500")(INTERNAL_500)).toBe(true);
+  });
+});
+
+describe("contract: program engine writes", () => {
+  const id = "6f0a4b2e-8a3c-4c2b-9c33-1d5f7a9e2b11";
+
+  it("accepts a quick mood without any client date or owner", () => {
+    const validate = schemaAt("/components/schemas/MoodEntryRequest");
+    expect(validate({ mood: 7 })).toBe(true);
+    expect(validate({ mood: 7, program_id: id })).toBe(true);
+    expect(validate({ mood: 7, program_id: null })).toBe(true);
+    expect(validate({ mood: 11 })).toBe(false);
+    expect(validate({ mood: 7, entry_date: "2026-10-20" })).toBe(false);
+    expect(validate({ mood: 7, user_id: id })).toBe(false);
+  });
+
+  it("requires both moods and bounded elapsed time", () => {
+    const validate = schemaAt("/components/schemas/TaskCompleteRequest");
+    expect(validate({ mood_before: 3, mood_after: 8, time_taken_s: 600 })).toBe(true);
+    expect(
+      validate({ mood_before: 3, mood_after: 8, time_taken_s: 600, payload: { note: "calm" } }),
+    ).toBe(true);
+    expect(validate({ mood_before: 3, mood_after: 8 })).toBe(false);
+    expect(validate({ mood_before: 3, mood_after: 11, time_taken_s: 600 })).toBe(false);
+    expect(validate({ mood_before: 3, mood_after: 8, time_taken_s: -1 })).toBe(false);
+    expect(validate({ mood_before: 3, mood_after: 8, time_taken_s: 600, status: "done" })).toBe(
+      false,
+    );
+  });
+
+  it("serialises completion and separates locked, closed and unavailable states", () => {
+    const complete = "/api/program/days/{day}/complete";
+    const body = {
+      day_no: 1,
+      status: "done",
+      completed_at: "2026-10-20T09:12:00Z",
+      days_completed: 1,
+    };
+    expect(responseSchema(complete, "post", "200")(body)).toBe(true);
+    expect(responseSchema(complete, "post", "200")({ ...body, days_completed: 30 })).toBe(false);
+    expect(
+      responseSchema(
+        complete,
+        "post",
+        "403",
+      )({
+        error: { code: "day_locked", message: "This day opens at its own local midnight." },
+      }),
+    ).toBe(true);
+    expect(
+      responseSchema(
+        complete,
+        "post",
+        "403",
+      )({
+        error: { code: "email_unverified", message: "Please confirm your email first." },
+      }),
+    ).toBe(true);
+    expect(
+      responseSchema(
+        complete,
+        "post",
+        "403",
+      )({
+        error: { code: "internal_error", message: "Something went wrong." },
+      }),
+    ).toBe(false);
+    expect(
+      responseSchema(
+        complete,
+        "post",
+        "409",
+      )({
+        error: { code: "day_closed", message: "This day's window has closed." },
+      }),
+    ).toBe(true);
+    expect(
+      responseSchema(
+        complete,
+        "post",
+        "409",
+      )({
+        error: { code: "program_unavailable", message: "Your program is not open." },
+      }),
+    ).toBe(true);
+    expect(responseSchema("/api/mood", "post", "201")({ entry_date: "2026-10-20", mood: 7 })).toBe(
+      true,
+    );
+    expect(
+      responseSchema(
+        "/api/mood",
+        "post",
+        "201",
+      )({
+        entry_date: "2026-10-20",
+        mood: 7,
+        entry_id: id,
+      }),
+    ).toBe(false);
+    expect(
+      responseSchema(
+        "/api/mood",
+        "post",
+        "409",
+      )({
+        error: { code: "program_unavailable", message: "Your program is not open." },
+      }),
+    ).toBe(true);
   });
 });
 

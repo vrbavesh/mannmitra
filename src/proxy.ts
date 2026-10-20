@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAppRoute, isPublicRoute, routeForStage } from "@/lib/stage";
+import { isFutureProgramDay } from "@/server/dayAccess";
 import {
   clearRecoveryCookie,
   recoveryCookieName,
@@ -11,6 +12,31 @@ import { userStage } from "@/server/userStage";
 function noStore(response: NextResponse): NextResponse {
   response.headers.set("Cache-Control", "private, no-store");
   return response;
+}
+
+/** Calm 403 for a program day before its local midnight. */
+function futureDayResponse(dayNo: number): NextResponse {
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Day ${dayNo} is not open yet</title>
+</head>
+<body style="margin:0;background:#f7fdfa;color:#195854;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;display:grid;place-items:center;min-height:100vh">
+<main style="max-width:34rem;padding:2rem">
+<h1 style="font-size:1.6rem;margin:0 0 .75rem">This day is not open yet.</h1>
+<p style="line-height:1.65;margin:0 0 1rem">Each practice opens at your local midnight. Your 30 day map shows when day ${dayNo} begins.</p>
+<p style="margin:0"><a href="/program" style="color:#287c70;font-weight:600">Back to your 30 days</a></p>
+</main>
+</body>
+</html>`;
+  return noStore(
+    new NextResponse(html, {
+      status: 403,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    }),
+  );
 }
 
 export async function proxy(request: NextRequest) {
@@ -71,7 +97,14 @@ export async function proxy(request: NextRequest) {
   try {
     const stage = await userStage(supabase, user.id);
     const destination = routeForStage(stage, path);
-    return destination ? redirect(destination) : noStore(response);
+    if (destination) return redirect(destination);
+    const dayMatch = /^\/program\/day\/(\d{1,2})$/.exec(path);
+    if (dayMatch && stage === "active") {
+      const dayNo = Number(dayMatch[1]);
+      if (dayNo >= 1 && dayNo <= 30 && (await isFutureProgramDay(supabase, user.id, dayNo)))
+        return futureDayResponse(dayNo);
+    }
+    return noStore(response);
   } catch {
     return noStore(new NextResponse("This page is temporarily unavailable.", { status: 503 }));
   }

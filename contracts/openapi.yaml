@@ -77,6 +77,138 @@ paths:
           $ref: "#/components/responses/RateLimited"
         "500":
           $ref: "#/components/responses/InternalError"
+  /api/mood:
+    post:
+      tags: [programs]
+      operationId: recordMood
+      summary: Save a quick mood check for today in the profile timezone
+      description: >
+        Requires a verified session outside password recovery and a completed
+        profile. The server derives entry_date from profiles.timezone; clients
+        never send a date, so a UTC browser cannot shift the day bucket. An
+        optional program_id must belong to the same user. Rate limit: 30 saves
+        per 10 minutes per user. Responses are private, no-store.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoodEntryRequest"
+      responses:
+        "201":
+          description: The mood entry was saved for today in the user's timezone.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoodEntryResponse"
+              example:
+                entry_date: "2026-10-20"
+                mood: 7
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/EmailUnverified"
+        "409":
+          $ref: "#/components/responses/ProgramUnavailable"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /api/program/days/{day}/complete:
+    post:
+      tags: [programs]
+      operationId: completeProgramDay
+      summary: Complete one program day after the before and after mood checks
+      description: >
+        Requires a verified session outside password recovery. `day` is 1 to 29;
+        day 30 is the post-test. The server rejects a day before its local
+        midnight with 403 day_locked, and a day past its 48 hour catch-up window
+        with 409 day_closed. Both mood values are required, and elapsed time is
+        stored in the completion payload as time_taken_s. Repeating an already
+        completed day returns the saved completion without changing it. Rate
+        limit: 30 completions per 10 minutes per user. Responses are private,
+        no-store.
+      parameters:
+        - name: day
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1, maximum: 29 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskCompleteRequest"
+      responses:
+        "200":
+          description: The day is complete. Retries return the saved completion.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskCompleteResponse"
+              example:
+                day_no: 1
+                status: done
+                completed_at: "2026-10-20T09:12:00Z"
+                days_completed: 1
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: The email is unconfirmed, or this day has not opened yet.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: "#/components/schemas/Error"
+                      - properties:
+                          error:
+                            properties:
+                              code: { const: email_unverified }
+                            required: [code]
+                  - allOf:
+                      - $ref: "#/components/schemas/Error"
+                      - properties:
+                          error:
+                            properties:
+                              code: { const: day_locked }
+                            required: [code]
+              example:
+                error:
+                  code: day_locked
+                  message: This day opens at its own local midnight. Your 30 day map shows when.
+        "409":
+          description: The catch-up window has closed, or no active program exists.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: "#/components/schemas/Error"
+                      - properties:
+                          error:
+                            properties:
+                              code: { const: day_closed }
+                            required: [code]
+                  - allOf:
+                      - $ref: "#/components/schemas/Error"
+                      - properties:
+                          error:
+                            properties:
+                              code: { const: program_unavailable }
+                            required: [code]
+              example:
+                error:
+                  code: day_closed
+                  message: This day's window has closed. You can continue with today.
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /api/onboarding:
     get:
       tags: [onboarding]
@@ -478,6 +610,44 @@ components:
         track: { $ref: "#/components/schemas/Track" }
         start_date: { type: string, format: date }
         stage: { type: string, const: active }
+    MoodEntryRequest:
+      type: object
+      additionalProperties: false
+      required: [mood]
+      properties:
+        mood: { type: integer, minimum: 0, maximum: 10 }
+        program_id:
+          type: [string, "null"]
+          format: uuid
+    MoodEntryResponse:
+      type: object
+      additionalProperties: false
+      required: [entry_date, mood]
+      properties:
+        entry_date: { type: string, format: date }
+        mood: { type: integer, minimum: 0, maximum: 10 }
+    TaskCompleteRequest:
+      type: object
+      additionalProperties: false
+      required: [mood_before, mood_after, time_taken_s]
+      properties:
+        mood_before: { type: integer, minimum: 0, maximum: 10 }
+        mood_after: { type: integer, minimum: 0, maximum: 10 }
+        time_taken_s: { type: integer, minimum: 0, maximum: 86400 }
+        payload:
+          type: object
+          description: Task-specific data; time_taken_s is added by the server.
+          additionalProperties: true
+          maxProperties: 30
+    TaskCompleteResponse:
+      type: object
+      additionalProperties: false
+      required: [day_no, status, completed_at, days_completed]
+      properties:
+        day_no: { type: integer, minimum: 1, maximum: 29 }
+        status: { type: string, const: done }
+        completed_at: { type: string, format: date-time }
+        days_completed: { type: integer, minimum: 0, maximum: 29 }
     Username:
       type: string
       pattern: "^[a-z0-9_]{3,20}$"
@@ -569,6 +739,9 @@ components:
                 - too_many_attempts
                 - google_only
                 - retake_not_allowed
+                - day_locked
+                - day_closed
+                - program_unavailable
                 - rate_limited
                 - internal_error
             message:
@@ -914,6 +1087,54 @@ components:
             error:
               code: retake_not_allowed
               message: You recently completed the check-in; the next one unlocks in a few days.
+    DayLocked:
+      description: The requested program day has not reached its local midnight yet.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - properties:
+                  error:
+                    properties:
+                      code: { const: day_locked }
+                    required: [code]
+          example:
+            error:
+              code: day_locked
+              message: This day opens at its own local midnight. Your 30 day map shows when.
+    DayClosed:
+      description: The 48 hour catch-up window for that day has passed.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - properties:
+                  error:
+                    properties:
+                      code: { const: day_closed }
+                    required: [code]
+          example:
+            error:
+              code: day_closed
+              message: This day's window has closed. You can continue with today.
+    ProgramUnavailable:
+      description: No active program exists for this user, or it cannot accept this write.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Error"
+              - properties:
+                  error:
+                    properties:
+                      code: { const: program_unavailable }
+                    required: [code]
+          example:
+            error:
+              code: program_unavailable
+              message: Your program is not open for this just now. Return to your home page to continue.
     RateLimited:
       description: Rate limit exceeded; try again after Retry-After seconds.
       headers:

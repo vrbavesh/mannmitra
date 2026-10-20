@@ -72,6 +72,20 @@ export const errors = {
       409,
       "You recently completed the check-in; the next one unlocks in a few days.",
     ),
+  dayLocked: () =>
+    new ApiError(
+      "day_locked",
+      403,
+      "This day opens at its own local midnight. Your 30 day map shows when.",
+    ),
+  dayClosed: () =>
+    new ApiError("day_closed", 409, "This day's window has closed. You can continue with today."),
+  programUnavailable: () =>
+    new ApiError(
+      "program_unavailable",
+      409,
+      "Your program is not open for this just now. Return to your home page to continue.",
+    ),
   rateLimited: (retryAfterSec: number) =>
     new ApiError("rate_limited", 429, "Too many tries for now; give it a moment and come back.", [
       { field: "retry_after_seconds", message: String(retryAfterSec) },

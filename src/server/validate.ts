@@ -15,6 +15,26 @@ export const programStartResponseSchema: z.ZodType<Schemas["ProgramStartResponse
   start_date: z.iso.date(),
   stage: z.literal("active"),
 });
+export const moodEntryRequestSchema: z.ZodType<Schemas["MoodEntryRequest"]> = z.strictObject({
+  mood: z.number().int().min(0).max(10),
+  program_id: z.uuid().nullable().optional(),
+});
+export const moodEntryResponseSchema: z.ZodType<Schemas["MoodEntryResponse"]> = z.strictObject({
+  entry_date: z.iso.date(),
+  mood: z.number().int().min(0).max(10),
+});
+export const taskCompleteRequestSchema: z.ZodType<Schemas["TaskCompleteRequest"]> = z.strictObject({
+  mood_before: z.number().int().min(0).max(10),
+  mood_after: z.number().int().min(0).max(10),
+  time_taken_s: z.number().int().min(0).max(86_400),
+  payload: z.record(z.string(), z.unknown()).optional(),
+});
+export const taskCompleteResponseSchema: z.ZodType<Schemas["TaskCompleteResponse"]> = z.object({
+  day_no: z.number().int().min(1).max(29),
+  status: z.literal("done"),
+  completed_at: z.iso.datetime(),
+  days_completed: z.number().int().min(0).max(29),
+});
 
 /**
  * Runtime schemas asserted against the generated contract types

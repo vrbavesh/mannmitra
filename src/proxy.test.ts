@@ -140,6 +140,98 @@ describe("stage proxy", () => {
     },
   );
 
+  it("returns 403 before rendering a future program day", async () => {
+    const futureStart = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
+    getUser.mockResolvedValue({
+      data: { user: { id: "owner", email_confirmed_at: "2026-10-20" } },
+      error: null,
+    });
+    const query = (result: object) => {
+      const chain = {
+        select: () => chain,
+        eq: () => chain,
+        in: () => chain,
+        order: () => chain,
+        limit: () => Object.assign(Promise.resolve(result), chain),
+        maybeSingle: () => Promise.resolve(result),
+      };
+      return chain;
+    };
+    from.mockImplementation((table: string) =>
+      query(
+        table === "profiles"
+          ? { data: { onboarding_completed: true, timezone: "Asia/Kolkata" }, error: null }
+          : table === "screening_sessions"
+            ? {
+                data: [
+                  {
+                    kind: "pre",
+                    severity: "mild",
+                    safety_answer: 0,
+                    completed_at: new Date().toISOString(),
+                  },
+                ],
+                error: null,
+              }
+            : table === "programs"
+              ? {
+                  data: { status: "active", start_date: futureStart, post_session_id: null },
+                  error: null,
+                }
+              : { data: null, error: null },
+      ),
+    );
+    const response = await proxy(request("/program/day/2"));
+    expect(response.status).toBe(403);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(await response.text()).toContain("not open yet");
+  });
+
+  it("lets a currently open program day reach the page", async () => {
+    const pastStart = new Date(Date.now() - 5 * 86_400_000).toISOString().slice(0, 10);
+    getUser.mockResolvedValue({
+      data: { user: { id: "owner", email_confirmed_at: "2026-10-20" } },
+      error: null,
+    });
+    const query = (result: object) => {
+      const chain = {
+        select: () => chain,
+        eq: () => chain,
+        in: () => chain,
+        order: () => chain,
+        limit: () => Object.assign(Promise.resolve(result), chain),
+        maybeSingle: () => Promise.resolve(result),
+      };
+      return chain;
+    };
+    from.mockImplementation((table: string) =>
+      query(
+        table === "profiles"
+          ? { data: { onboarding_completed: true, timezone: "Asia/Kolkata" }, error: null }
+          : table === "screening_sessions"
+            ? {
+                data: [
+                  {
+                    kind: "pre",
+                    severity: "mild",
+                    safety_answer: 0,
+                    completed_at: new Date().toISOString(),
+                  },
+                ],
+                error: null,
+              }
+            : table === "programs"
+              ? {
+                  data: { status: "active", start_date: pastStart, post_session_id: null },
+                  error: null,
+                }
+              : { data: null, error: null },
+      ),
+    );
+    const response = await proxy(request("/program/day/1"));
+    expect(response.status).toBe(200);
+  });
+
   it("keeps a temporary recovery session on the reset screen", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "user-id" } }, error: null });
     getSession.mockResolvedValue({

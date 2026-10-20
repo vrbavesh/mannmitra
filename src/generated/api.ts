@@ -24,6 +24,46 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/mood": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Save a quick mood check for today in the profile timezone
+     * @description Requires a verified session outside password recovery and a completed profile. The server derives entry_date from profiles.timezone; clients never send a date, so a UTC browser cannot shift the day bucket. An optional program_id must belong to the same user. Rate limit: 30 saves per 10 minutes per user. Responses are private, no-store.
+     */
+    post: operations["recordMood"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/program/days/{day}/complete": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Complete one program day after the before and after mood checks
+     * @description Requires a verified session outside password recovery. `day` is 1 to 29; day 30 is the post-test. The server rejects a day before its local midnight with 403 day_locked, and a day past its 48 hour catch-up window with 409 day_closed. Both mood values are required, and elapsed time is stored in the completion payload as time_taken_s. Repeating an already completed day returns the saved completion without changing it. Rate limit: 30 completions per 10 minutes per user. Responses are private, no-store.
+     */
+    post: operations["completeProgramDay"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/onboarding": {
     parameters: {
       query?: never;
@@ -225,6 +265,33 @@ export interface components {
       /** @constant */
       stage: "active";
     };
+    MoodEntryRequest: {
+      mood: number;
+      /** Format: uuid */
+      program_id?: string | null;
+    };
+    MoodEntryResponse: {
+      /** Format: date */
+      entry_date: string;
+      mood: number;
+    };
+    TaskCompleteRequest: {
+      mood_before: number;
+      mood_after: number;
+      time_taken_s: number;
+      /** @description Task-specific data; time_taken_s is added by the server. */
+      payload?: {
+        [key: string]: unknown;
+      };
+    };
+    TaskCompleteResponse: {
+      day_no: number;
+      /** @constant */
+      status: "done";
+      /** Format: date-time */
+      completed_at: string;
+      days_completed: number;
+    };
     Username: string;
     UsernameAvailability: {
       available: boolean;
@@ -282,6 +349,9 @@ export interface components {
           | "too_many_attempts"
           | "google_only"
           | "retake_not_allowed"
+          | "day_locked"
+          | "day_closed"
+          | "program_unavailable"
           | "rate_limited"
           | "internal_error";
         /** @description Calm, human-readable, non-alarming copy (spec: no red-alarm auth errors). */
@@ -577,6 +647,72 @@ export interface components {
         };
       };
     };
+    /** @description The requested program day has not reached its local midnight yet. */
+    DayLocked: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": {
+         *         "code": "day_locked",
+         *         "message": "This day opens at its own local midnight. Your 30 day map shows when."
+         *       }
+         *     }
+         */
+        "application/json": components["schemas"]["Error"] & {
+          error?: {
+            /** @constant */
+            code: "day_locked";
+          };
+        };
+      };
+    };
+    /** @description The 48 hour catch-up window for that day has passed. */
+    DayClosed: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": {
+         *         "code": "day_closed",
+         *         "message": "This day's window has closed. You can continue with today."
+         *       }
+         *     }
+         */
+        "application/json": components["schemas"]["Error"] & {
+          error?: {
+            /** @constant */
+            code: "day_closed";
+          };
+        };
+      };
+    };
+    /** @description No active program exists for this user, or it cannot accept this write. */
+    ProgramUnavailable: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        /**
+         * @example {
+         *       "error": {
+         *         "code": "program_unavailable",
+         *         "message": "Your program is not open for this just now. Return to your home page to continue."
+         *       }
+         *     }
+         */
+        "application/json": components["schemas"]["Error"] & {
+          error?: {
+            /** @constant */
+            code: "program_unavailable";
+          };
+        };
+      };
+    };
     /** @description Rate limit exceeded; try again after Retry-After seconds. */
     RateLimited: {
       headers: {
@@ -667,6 +803,138 @@ export interface operations {
       };
       401: components["responses"]["Unauthorized"];
       403: components["responses"]["EmailUnverified"];
+      422: components["responses"]["ValidationFailed"];
+      429: components["responses"]["RateLimited"];
+      500: components["responses"]["InternalError"];
+    };
+  };
+  recordMood: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MoodEntryRequest"];
+      };
+    };
+    responses: {
+      /** @description The mood entry was saved for today in the user's timezone. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "entry_date": "2026-10-20",
+           *       "mood": 7
+           *     }
+           */
+          "application/json": components["schemas"]["MoodEntryResponse"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["EmailUnverified"];
+      409: components["responses"]["ProgramUnavailable"];
+      422: components["responses"]["ValidationFailed"];
+      429: components["responses"]["RateLimited"];
+      500: components["responses"]["InternalError"];
+    };
+  };
+  completeProgramDay: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        day: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TaskCompleteRequest"];
+      };
+    };
+    responses: {
+      /** @description The day is complete. Retries return the saved completion. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "day_no": 1,
+           *       "status": "done",
+           *       "completed_at": "2026-10-20T09:12:00Z",
+           *       "days_completed": 1
+           *     }
+           */
+          "application/json": components["schemas"]["TaskCompleteResponse"];
+        };
+      };
+      401: components["responses"]["Unauthorized"];
+      /** @description The email is unconfirmed, or this day has not opened yet. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "error": {
+           *         "code": "day_locked",
+           *         "message": "This day opens at its own local midnight. Your 30 day map shows when."
+           *       }
+           *     }
+           */
+          "application/json":
+            | (components["schemas"]["Error"] & {
+                error?: {
+                  /** @constant */
+                  code: "email_unverified";
+                };
+              })
+            | (components["schemas"]["Error"] & {
+                error?: {
+                  /** @constant */
+                  code: "day_locked";
+                };
+              });
+        };
+      };
+      /** @description The catch-up window has closed, or no active program exists. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "error": {
+           *         "code": "day_closed",
+           *         "message": "This day's window has closed. You can continue with today."
+           *       }
+           *     }
+           */
+          "application/json":
+            | (components["schemas"]["Error"] & {
+                error?: {
+                  /** @constant */
+                  code: "day_closed";
+                };
+              })
+            | (components["schemas"]["Error"] & {
+                error?: {
+                  /** @constant */
+                  code: "program_unavailable";
+                };
+              });
+        };
+      };
       422: components["responses"]["ValidationFailed"];
       429: components["responses"]["RateLimited"];
       500: components["responses"]["InternalError"];
