@@ -30,7 +30,8 @@ export type LimitName =
   | "otp_verify"
   | "username"
   | "onboarding"
-  | "screening";
+  | "screening"
+  | "program";
 
 const LIMITS: Record<LimitName, { tokens: number; window: `${number} ${"s" | "m" | "h" | "d"}` }> =
   {
@@ -41,6 +42,7 @@ const LIMITS: Record<LimitName, { tokens: number; window: `${number} ${"s" | "m"
     username: { tokens: 30, window: "1 m" },
     onboarding: { tokens: 10, window: "10 m" },
     screening: { tokens: 10, window: "10 m" },
+    program: { tokens: 10, window: "10 m" },
   };
 
 export type RateLimitResult = {

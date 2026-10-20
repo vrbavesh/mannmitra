@@ -1,5 +1,20 @@
-import { RouteShell } from "@/components/RouteShell";
+import { ScreeningSupport } from "@/components/ScreeningSupport";
+import { Card } from "@/components/ui/Card";
+import Link from "next/link";
 
-export default function crisisPage() {
-  return <RouteShell title="Support is here" description="If you need someone to talk to, Tele-MANAS is available at 14416. For immediate help in India, call 112." />;
+export default function CrisisPage() {
+  return (
+    <main className="mx-auto flex w-full max-w-2xl flex-1 items-center px-5 py-12">
+      <Card className="w-full p-7 sm:p-10">
+        <p className="mb-6 text-sm font-semibold text-primary">MannMitra</p>
+        <ScreeningSupport screened={false} />
+        <Link
+          href="/"
+          className="mt-7 inline-block text-sm font-semibold text-primary underline underline-offset-4"
+        >
+          Back to MannMitra
+        </Link>
+      </Card>
+    </main>
+  );
 }

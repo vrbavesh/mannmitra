@@ -1,6 +1,12 @@
 import type { ReactNode } from "react";
 
-export function ScreeningSupport({ children }: { children?: ReactNode }) {
+export function ScreeningSupport({
+  children,
+  screened = true,
+}: {
+  children?: ReactNode;
+  screened?: boolean;
+}) {
   return (
     <div className="space-y-5">
       <h1
@@ -11,8 +17,9 @@ export function ScreeningSupport({ children }: { children?: ReactNode }) {
         Support is here
       </h1>
       <p className="leading-relaxed text-muted-foreground">
-        Your answers suggest you may benefit from talking to a professional. You do not have to
-        handle this alone.
+        {screened
+          ? "Your answers suggest you may benefit from talking to a professional. You do not have to handle this alone."
+          : "If things feel difficult, you can reach out for support. You do not have to handle this alone."}
       </p>
       <p className="leading-relaxed">
         You can call Tele-MANAS at{" "}

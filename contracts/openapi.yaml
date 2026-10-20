@@ -27,7 +27,56 @@ tags:
   - name: auth
   - name: screening
   - name: onboarding
+  - name: programs
 paths:
+  /api/programs:
+    post:
+      tags: [programs]
+      operationId: startProgram
+      summary: Start my 30 days from my latest cleared pretest
+      description: >
+        Requires a verified session outside password recovery and completed onboarding.
+        The server checks that pre_session_id belongs to this user, is their latest
+        scored pretest, and has safety_answer=0 with non-severe severity.
+        Track is the highest stored area distress; ties prefer anxiety, then
+        depression, then negative_thinking. Start date is today in profiles.timezone.
+        A profile row lock serializes creation. Retrying the same active program
+        returns 200 without changing its date or track; creation returns 201.
+        Other ineligible states return 422 with field=pre_session_id.
+        Client-provided track, dates and owner fields are rejected.
+        Rate limit: 10 requests per 10 minutes per user. Responses are private, no-store.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgramStartRequest"
+      responses:
+        "200":
+          description: The same active program already exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramStartResponse"
+        "201":
+          description: Program created. Location points to the program page.
+          headers:
+            Location:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramStartResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/EmailUnverified"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /api/onboarding:
     get:
       tags: [onboarding]
@@ -414,6 +463,21 @@ paths:
           $ref: "#/components/responses/InternalError"
 components:
   schemas:
+    ProgramStartRequest:
+      type: object
+      additionalProperties: false
+      required: [pre_session_id]
+      properties:
+        pre_session_id: { type: string, format: uuid }
+    ProgramStartResponse:
+      type: object
+      additionalProperties: false
+      required: [program_id, track, start_date, stage]
+      properties:
+        program_id: { type: string, format: uuid }
+        track: { $ref: "#/components/schemas/Track" }
+        start_date: { type: string, format: date }
+        stage: { type: string, const: active }
     Username:
       type: string
       pattern: "^[a-z0-9_]{3,20}$"

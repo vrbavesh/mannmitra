@@ -102,6 +102,7 @@ describe("contract: route surface", () => {
       "/api/auth/signin",
       "/api/onboarding",
       "/api/onboarding/username",
+      "/api/programs",
       "/api/screening/sessions",
     ]);
   });
@@ -120,6 +121,30 @@ describe("contract: route surface", () => {
     expect(paths.filter((p) => /resolve|lookup|username/i.test(p))).toEqual([
       "/api/onboarding/username",
     ]);
+  });
+});
+
+describe("contract: program start", () => {
+  const id = "6f0a4b2e-8a3c-4c2b-9c33-1d5f7a9e2b11";
+  it("accepts only a screening identifier, never client dates, tracks or owners", () => {
+    const validate = schemaAt("/components/schemas/ProgramStartRequest");
+    expect(validate({ pre_session_id: id })).toBe(true);
+    expect(validate({ pre_session_id: id, start_date: "2020-01-01" })).toBe(false);
+    expect(validate({ pre_session_id: id, track: "anxiety" })).toBe(false);
+    expect(validate({ pre_session_id: id, user_id: id })).toBe(false);
+    expect(validate({ pre_session_id: "bad" })).toBe(false);
+  });
+  it("defines creation, safe retry and the existing error envelopes", () => {
+    const body = { program_id: id, track: "anxiety", start_date: "2026-10-20", stage: "active" };
+    expect(responseSchema("/api/programs", "post", "201")(body)).toBe(true);
+    expect(responseSchema("/api/programs", "post", "200")(body)).toBe(true);
+    expect(
+      responseSchema("/api/programs", "post", "201")({ ...body, start_date: "not-a-date" }),
+    ).toBe(false);
+    expect(responseSchema("/api/programs", "post", "201")({ ...body, track: "blend" })).toBe(false);
+    expect(responseSchema("/api/programs", "post", "422")(VALIDATION_422)).toBe(true);
+    expect(responseSchema("/api/programs", "post", "429")(RATE_LIMITED_429)).toBe(true);
+    expect(responseSchema("/api/programs", "post", "500")(INTERNAL_500)).toBe(true);
   });
 });
 

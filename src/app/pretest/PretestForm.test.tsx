@@ -26,7 +26,12 @@ describe("pretest", () => {
     render(<PretestForm draftKey="new-user" />);
     await screen.findByRole("heading", { name: "Your daily life felt interesting." });
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
-    fireEvent.keyDown(window, { key: "3" });
+    expect(
+      screen.getByRole("heading", { name: "Your daily life felt interesting." }),
+    ).toHaveFocus();
+    fireEvent.keyDown(screen.getByRole("heading", { name: "Your daily life felt interesting." }), {
+      key: "3",
+    });
     expect(screen.getByRole("radio", { name: "3 A good bit of the time" })).toBeChecked();
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(JSON.parse(sessionStorage.getItem("new-user")!)).toMatchObject({

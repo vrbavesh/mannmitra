@@ -13,7 +13,7 @@ The app normally uses the hosted Supabase project. `supabase/config.toml` config
 ## Verification
 
 - `npm run verify`: lint, typecheck, production build, unit/contract tests, and the required Playwright browser smoke gate.
-- `npm run test:e2e`: entry navigation, rendered control contrast, and mobile reduced-motion checks against the production build. Run `npm run build` first when using this command on its own. Install the Chromium browser once with `npx playwright install chromium` if needed.
+- `npm run test:e2e`: entry navigation, rendered control contrast, mobile reduced-motion checks, and public support without JavaScript against the production build. Run `npm run build` first when using this command on its own. Install the Chromium browser once with `npx playwright install chromium` if needed.
 - `npm run verify:rls`: separate network-enabled regression suite against the configured Supabase project. Uses temporary synthetic accounts and removes its rows and storage fixtures. Requires a service role key; never use it in browser code.
 
 Run verification commands sequentially because Next.js build and development servers share generated files. Browser artifacts are ignored by Git and lint.

@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/Button";
@@ -44,7 +51,7 @@ export function PretestForm({ draftKey }: { draftKey: string }) {
       setReady(true);
     });
   }, [draftKey]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (ready)
       (showSupport ? document.getElementById("screening-support-title") : heading.current)?.focus();
   }, [draft.step, ready, showSupport]);
@@ -108,30 +115,26 @@ export function PretestForm({ draftKey }: { draftKey: string }) {
     save(next);
     if (draft.step === 18 && value > 0) void submit(next);
   }
-  useEffect(() => {
-    const keydown = (event: KeyboardEvent) => {
-      if (
-        !ready ||
-        busy ||
-        (draft.safety !== null && draft.safety > 0) ||
-        event.altKey ||
-        event.ctrlKey ||
-        event.metaKey
-      )
-        return;
-      const value = Number(event.key);
-      if (
-        event.key.length === 1 &&
-        /[0-6]/.test(event.key) &&
-        (draft.step === 18 ? value <= 3 : value >= 1)
-      ) {
-        event.preventDefault();
-        select(value);
-      }
-    };
-    window.addEventListener("keydown", keydown);
-    return () => window.removeEventListener("keydown", keydown);
-  });
+  function keydown(event: KeyboardEvent<HTMLFormElement>) {
+    if (
+      !ready ||
+      busy ||
+      (draft.safety !== null && draft.safety > 0) ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.metaKey
+    )
+      return;
+    const value = Number(event.key);
+    if (
+      event.key.length === 1 &&
+      /[0-6]/.test(event.key) &&
+      (draft.step === 18 ? value <= 3 : value >= 1)
+    ) {
+      event.preventDefault();
+      select(value);
+    }
+  }
   const selected = draft.step === 18 ? draft.safety : draft.answers[draft.step];
   function next(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -153,7 +156,7 @@ export function PretestForm({ draftKey }: { draftKey: string }) {
             {!busy && <Button onClick={() => void submit()}>Save check-in</Button>}
           </ScreeningSupport>
         ) : (
-          <form onSubmit={next} aria-busy={busy}>
+          <form onSubmit={next} onKeyDown={keydown} aria-busy={busy}>
             <Progress
               value={((draft.step + 1) / 19) * 100}
               label={`Question ${draft.step + 1} of 19`}

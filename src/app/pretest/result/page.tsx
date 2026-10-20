@@ -4,6 +4,9 @@ import { pageClient } from "@/server/authClient";
 import { Card } from "@/components/ui/Card";
 import { RouteShell } from "@/components/RouteShell";
 import { ScreeningSupport } from "@/components/ScreeningSupport";
+import { deriveGate } from "@/lib/risk";
+import { localDate } from "@/lib/stage";
+import { ResultSummary } from "./ResultSummary";
 
 async function Result() {
   const client = await pageClient();
@@ -12,40 +15,65 @@ async function Result() {
     error,
   } = await client.auth.getUser();
   if (error || !user) redirect("/signin");
-  const { data: result, error: readError } = await client
-    .from("screening_sessions")
-    .select("wellbeing_pct,severity,safety_answer")
-    .eq("user_id", user.id)
-    .eq("kind", "pre")
-    .order("completed_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (readError) throw new Error("Check-in unavailable");
+  if (!user.email_confirmed_at) redirect("/signup/verify");
+  const [saved, profile] = await Promise.all([
+    client
+      .from("screening_sessions")
+      .select(
+        "id,wellbeing_pct,anxiety_pct,depression_pct,negmood_pct,severity,safety_answer,completed_at",
+      )
+      .eq("user_id", user.id)
+      .eq("kind", "pre")
+      .order("completed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    client.from("profiles").select("timezone").eq("id", user.id).single(),
+  ]);
+  if (saved.error || profile.error || !profile.data) throw new Error("Check-in unavailable");
+  const result = saved.data;
   if (!result || result.severity === null) redirect("/pretest");
+  const gate = deriveGate(
+    result.safety_answer,
+    result.severity,
+    localDate(new Date(result.completed_at), profile.data.timezone),
+  );
+  if (gate.showSupport)
+    return (
+      <main className="mx-auto flex w-full max-w-2xl flex-1 items-center px-5 py-12">
+        <Card className="w-full p-7 sm:p-10">
+          <p className="mb-6 text-sm font-semibold text-primary">MannMitra</p>
+          <ScreeningSupport>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              You can take another check-in from{" "}
+              <span className="font-semibold">
+                {new Intl.DateTimeFormat("en-IN", { dateStyle: "long", timeZone: "UTC" }).format(
+                  new Date(gate.retakeAt! + "T00:00:00Z"),
+                )}
+              </span>{" "}
+              in your local calendar.
+            </p>
+          </ScreeningSupport>
+        </Card>
+      </main>
+    );
+  if (
+    [result.wellbeing_pct, result.anxiety_pct, result.depression_pct, result.negmood_pct].some(
+      (value) => value === null,
+    )
+  )
+    throw new Error("Check-in unavailable");
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 items-center px-5 py-12">
-      <Card className="w-full p-6 sm:p-10">
-        <p className="mb-6 text-sm font-semibold text-primary">MannMitra</p>
-        {result.safety_answer > 0 || result.severity === "severe" ? (
-          <ScreeningSupport />
-        ) : (
-          <div className="space-y-5">
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-              Your check-in is saved
-            </h1>
-            <p className="text-muted-foreground">Thank you for taking this time for yourself.</p>
-            <p className="text-lg">
-              Your wellbeing score:{" "}
-              <span className="font-mono font-semibold">
-                {Number(result.wellbeing_pct).toFixed(1)}%
-              </span>
-            </p>
-            <p className="text-sm text-muted-foreground">
-              This is a screening, not a medical diagnosis.
-            </p>
-          </div>
-        )}
-      </Card>
+    <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-10 sm:py-14">
+      <ResultSummary
+        sessionId={result.id}
+        score={Number(result.wellbeing_pct)}
+        severity={result.severity}
+        areas={{
+          anxiety_pct: Number(result.anxiety_pct),
+          depression_pct: Number(result.depression_pct),
+          negmood_pct: Number(result.negmood_pct),
+        }}
+      />
     </main>
   );
 }

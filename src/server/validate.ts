@@ -6,6 +6,16 @@ import { usernamePattern } from "@/lib/onboarding";
 
 type Schemas = components["schemas"];
 
+export const programStartRequestSchema: z.ZodType<Schemas["ProgramStartRequest"]> = z.strictObject({
+  pre_session_id: z.uuid(),
+});
+export const programStartResponseSchema: z.ZodType<Schemas["ProgramStartResponse"]> = z.object({
+  program_id: z.uuid(),
+  track: z.enum(["anxiety", "depression", "negative_thinking"]),
+  start_date: z.iso.date(),
+  stage: z.literal("active"),
+});
+
 /**
  * Runtime schemas asserted against the generated contract types
  * (`z.ZodType<T>` makes tsc fail if this file and contracts/openapi.yaml

@@ -94,6 +94,52 @@ describe("stage proxy", () => {
     },
   );
 
+  it.each([
+    [1, "minimal"],
+    [0, "severe"],
+  ])(
+    "keeps safety %s / severity %s on support at each protected visit",
+    async (safety, severity) => {
+      getUser.mockResolvedValue({
+        data: { user: { id: "owner", email_confirmed_at: "2026-10-20" } },
+        error: null,
+      });
+      from.mockImplementation((table: string) => {
+        const result = {
+          data:
+            table === "profiles"
+              ? { onboarding_completed: true, timezone: "Asia/Kolkata" }
+              : table === "screening_sessions"
+                ? [
+                    {
+                      kind: "pre",
+                      safety_answer: safety,
+                      severity,
+                      completed_at: new Date().toISOString(),
+                    },
+                  ]
+                : null,
+          error: null,
+        };
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          in: () => chain,
+          order: () => chain,
+          limit: () => Object.assign(Promise.resolve(result), chain),
+          maybeSingle: () => Promise.resolve(result),
+        };
+        return chain;
+      });
+      for (const path of ["/home", "/program", "/pretest"]) {
+        const response = await proxy(request(path));
+        expect(response.headers.get("location")).toBe("http://localhost:3000/pretest/result");
+        expect(response.headers.get("cache-control")).toBe("private, no-store");
+      }
+      expect((await proxy(request("/pretest/result"))).status).toBe(200);
+    },
+  );
+
   it("keeps a temporary recovery session on the reset screen", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "user-id" } }, error: null });
     getSession.mockResolvedValue({
