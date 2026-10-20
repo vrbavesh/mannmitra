@@ -55,3 +55,18 @@ These are screenshots of the local production implementation, captured with Play
 No generated/downloaded raster art ships. Procedural geometry/shaders adapt the supplied HTML. Temporary full-size captures and raw Lighthouse reports live in ignored `.impeccable/review/`.
 
 **Not checked:** physical phone battery/GPU behavior, Safari/Firefox, a deployed origin, or a new live Supabase/Google matrix. The existing hosted RLS and real Google evidence remain unchanged. Nothing pushed.
+
+## Interaction correction after user feedback
+
+The user identified runtime differences in the first TSX adaptation that static visual review did not catch. These are corrected by porting the original HTML interaction code, without replacing the page design or adding dependencies:
+
+- The orb shows `grab` on hover and `grabbing` while held. Pointer capture, cancellation, lost capture, blur and unmount clear the grabbing state.
+- The source's two-substep spring integrator now controls home position/scale, drag return and press scale. Home response is 0.6s instead of the source's 0.5s, slightly slower as requested. Rotation returns to the source's 0.06 radians/second baseline; release spin decays at its original rate. Grab offsets, rubber-band resistance, eight-sample history, 80ms release-velocity cutoff and velocity-based stretch come from the supplied HTML.
+- Day hover uses the source's 90px distance falloff, 9px peak lift, 1.3 peak scale and 140ms transition. Neighbouring cells rise symmetrically. The mobile grid limits it to the current row; pointer leave and reduced motion reset every cell.
+- Existing fallback, lazy loading, content, account navigation and program-day corrections are preserved.
+
+Final `npm run verify` after this correction: **182 unit/contract tests across 21 files and 9 production browser checks**, plus lint, types and build. Physics tests cover smooth bounded settling at 20/30/60/144fps, velocity-preserving release, and rubber-band resistance. Browser checks assert both cursor states, pointer capture/release, the rise/fall across five neighbouring cells, pointer-leave reset and reduced-motion suppression. The reduced-motion assertion handles JavaScript's equivalent positive/negative zero values.
+
+The live in-app preview was refreshed and its orb drag and day hover were exercised. `step8-day-hover-correction.png` records the real preview at 699×654, with day 5 raised most and days 4/6 raised less. This is a browser screenshot, not generated artwork.
+
+**Ponytail correction review: Ship.** Checked the source formulas, changed scene/render callers, scoped CSS, event cleanup, current-row behavior and regression tests. No extra page rebuild or dependency was needed. The earlier Lighthouse result is historical; it was not rerun for this interaction correction. Physical touch-device feel and deployed-origin behavior remain unchecked.

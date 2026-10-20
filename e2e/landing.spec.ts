@@ -51,12 +51,15 @@ test("reduced motion can be enabled live and all content stays readable", async 
   await page.goto("/");
   await expect(page.locator("[data-scene-ready]")).toHaveCount(1);
   await page.mouse.move(960, 360);
+  await expect(page.locator("#landing")).toHaveCSS("cursor", "grab");
   await page.mouse.down();
+  await expect(page.locator("#landing")).toHaveCSS("cursor", "grabbing");
   expect(await page.locator("#landing").evaluate((element) => element.hasPointerCapture(1))).toBe(
     true,
   );
   await page.mouse.move(1040, 300);
   await page.mouse.up();
+  await expect(page.locator("#landing")).not.toHaveAttribute("data-orb-grabbing", "");
   expect(await page.locator("#landing").evaluate((element) => element.hasPointerCapture(1))).toBe(
     false,
   );
@@ -76,6 +79,32 @@ test("reduced motion can be enabled live and all content stays readable", async 
             .filter((animation) => animation.playState === "running").length,
       ),
   ).toBe(0);
+});
+
+test("hovering a day lifts its neighbours with the source's proximity curve", async ({ page }) => {
+  await page.goto("/");
+  const strip = page.locator("[data-day-strip]");
+  await strip.scrollIntoViewIfNeeded();
+  const days = strip.locator("span");
+  await days.nth(14).hover();
+  const lift = async (index: number) =>
+    days
+      .nth(index)
+      .evaluate((element) => -new DOMMatrixReadOnly(getComputedStyle(element).transform).m42);
+  await expect.poll(() => lift(14)).toBeGreaterThan(8);
+  const values = await Promise.all([12, 13, 14, 15, 16].map(lift));
+  expect(values[0]).toBeGreaterThan(0);
+  expect(values[0]).toBeLessThan(values[1]);
+  expect(values[1]).toBeLessThan(values[2]);
+  expect(values[2]).toBeGreaterThan(values[3]);
+  expect(values[3]).toBeGreaterThan(values[4]);
+  expect(Math.abs(values[1] - values[3])).toBeLessThan(1);
+  await page.mouse.move(10, 100);
+  await expect.poll(() => lift(14)).toBeLessThan(0.1);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await days.nth(14).hover();
+  expect(await lift(14)).toBeCloseTo(0, 6);
+  expect(await lift(13)).toBeCloseTo(0, 6);
 });
 
 test("a lost WebGL context restores the static orb", async ({ page }) => {

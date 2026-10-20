@@ -65,4 +65,4 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - 2026-10-19  Step 5 — Email signup, OTP verify, session cookies (live-verified) — fef4f01
 - 2026-10-19  Step 6 — Sign-in and account recovery (live-verified) — 99ea3f7
 - 2026-10-19  Step 7 — Google sign-in and same-email enforcement (real Google matrix verified) — 663ac50 (+closeout)
-- 2026-10-20 Step 8 — Fluid Glass landing, fallbacks, motion, verification and Wave B audit — closing Step 8 commit
+- 2026-10-20 Step 8 — Fluid Glass landing, fallbacks, source interaction port and Wave B audit — 832847e (+interaction correction)

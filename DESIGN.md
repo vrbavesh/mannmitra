@@ -161,7 +161,7 @@ Existing application buttons retain primary, secondary, and ghost variants, with
 
 ### Cards / Containers
 
-The landing program sheet uses translucent glass, the sheet radius, responsive padding, and the sheet shadow. The thirty-day strip distinguishes main practice, lighter activity, and final check-in with fill, outline, and accompanying text. Fine-pointer day hover uses a 140ms transform. Existing app cards retain their border and card/raised shadow variants; padding is supplied by their callers.
+The landing program sheet uses translucent glass, the sheet radius, responsive padding, and the sheet shadow. The thirty-day strip distinguishes main practice, lighter activity, and final check-in with fill, outline, and accompanying text. Mouse proximity lifts the hovered day and its neighbours using the source HTML's 90px falloff: up to 9px lift and 1.3 scale, with a 140ms transform transition. The phone grid limits the effect to the current row. Leaving the strip or enabling reduced motion resets it. Existing app cards retain their border and card/raised shadow variants; padding is supplied by their callers.
 
 ### Inputs / Fields
 
@@ -173,7 +173,7 @@ The landing navigation is fixed, with a translucent wash fading toward the page.
 
 ### Procedural artwork
 
-Three.js draws the orb and independent pebbles. Scroll controls its position and scale without intercepting scrolling; mouse dragging returns through a spring. The scene pauses offscreen or in hidden documents. Reduced motion, data saving, limited device capability, loading, and WebGL failure preserve the CSS artwork. Content is visible before enhancement. No generated or downloaded raster assets ship with this landing.
+Three.js draws the orb and independent pebbles. Scroll controls its position and scale without intercepting scrolling. The original HTML's two-substep spring integrator smooths position and scale, with a 0.6s home response (slightly slower than the original 0.5s). The cursor becomes grab over the orb and grabbing while held. The port retains grab offset, press compression, rubber-band resistance, eight-sample release velocity, inertial spin and spring return. The scene pauses offscreen or in hidden documents. Reduced motion, data saving, limited device capability, loading, and WebGL failure preserve the CSS artwork. Content is visible before enhancement. No generated or downloaded raster assets ship with this landing.
 
 UI reveals use opacity and a 12px translation over 240ms. Reduced motion disables reveals and ongoing orb animation; global CSS makes transitions effectively instant. The ongoing decorative scene is separate from the sub-300ms UI feedback budget.
 

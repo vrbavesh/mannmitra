@@ -79,6 +79,7 @@ export default function Home() {
             <div className={styles.sheet} data-landing-sheet>
               <div
                 className={styles.strip}
+                data-day-strip
                 role="img"
                 aria-label="Thirty-day preview: odd days have a main practice, even days have a short activity, and day 30 is a final check-in."
               >

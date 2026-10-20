@@ -13,9 +13,27 @@ export default function LandingEffects() {
   useEffect(() => {
     const root = document.getElementById("landing")!;
     const media = matchMedia("(prefers-reduced-motion: reduce)");
+    const strip = root.querySelector<HTMLElement>("[data-day-strip]");
+    const cells = Array.from(strip?.children ?? []) as HTMLElement[];
+    const resetDays = () => cells.forEach((cell) => cell.style.removeProperty("transform"));
+    const liftDays = (event: PointerEvent) => {
+      if (media.matches || event.pointerType !== "mouse") return;
+      // The HTML's 90px proximity falloff, scoped to the current row on phones.
+      cells.forEach((cell) => {
+        const r = cell.getBoundingClientRect();
+        const sameRow = Math.abs(event.clientY - (r.top + r.height / 2)) <= r.height / 2 + 12;
+        const k = sameRow
+          ? Math.max(0, 1 - Math.abs(event.clientX - (r.left + r.width / 2)) / 90)
+          : 0;
+        cell.style.transform = `translateY(${-9 * k}px) scale(${1 + k * 0.3})`;
+      });
+    };
+    strip?.addEventListener("pointermove", liftDays);
+    strip?.addEventListener("pointerleave", resetDays);
     const animations: ReturnType<typeof animate>[] = [];
     let stopReveal: (() => void) | undefined;
     const reveal = () => {
+      resetDays();
       stopReveal?.();
       animations.forEach((animation) => animation.complete());
       animations.length = 0;
@@ -77,6 +95,9 @@ export default function LandingEffects() {
     document.addEventListener("visibilitychange", update);
     return () => {
       cancelAnimationFrame(frame);
+      strip?.removeEventListener("pointermove", liftDays);
+      strip?.removeEventListener("pointerleave", resetDays);
+      resetDays();
       window.removeEventListener("load", deferScene);
       if (idle !== undefined) {
         if (window.cancelIdleCallback) window.cancelIdleCallback(idle);

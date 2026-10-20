@@ -1,9 +1,10 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { animate, useMotionValue, useScroll } from "motion/react";
+import { useScroll } from "motion/react";
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Group, ShaderMaterial } from "three";
+import type { Group, Mesh, ShaderMaterial } from "three";
+import { rubberBand, spring, stepSpring } from "./fluid-physics";
 
 const vertexShader = `
 uniform float uT;
@@ -48,10 +49,24 @@ function Orb({ onReady, onLost }: { onReady: () => void; onLost: () => void }) {
   const group = useRef<Group>(null);
   const pebbles = useRef<Group>(null);
   const glass = useRef<ShaderMaterial>(null);
+  const shade = useRef<Mesh>(null);
   const { gl, size, viewport } = useThree();
   const { scrollY } = useScroll();
-  const dragX = useMotionValue(0);
-  const dragY = useMotionValue(0);
+  const physics = useRef({
+    hx: spring(0),
+    hy: spring(0),
+    hs: spring(1),
+    dx: spring(0),
+    dy: spring(0),
+    ps: spring(1),
+    pointerId: null as number | null,
+    off: { x: 0, y: 0 },
+    hist: [] as { x: number; y: number; t: number }[],
+    spin: { x: 0, y: 0 },
+    dz: 1,
+  });
+  const pointer = useRef<{ x: number; y: number; blocked: boolean } | null>(null);
+  const rootRef = useRef<HTMLElement | null>(null);
   const uniforms = useMemo(() => ({ uT: { value: 0 } }), []);
   const centers = useRef<number[]>([]);
   const ready = useRef(false);
@@ -78,79 +93,107 @@ function Orb({ onReady, onLost }: { onReady: () => void; onLost: () => void }) {
 
   useEffect(() => {
     const root = document.getElementById("landing")!;
-    let drag: { id: number; x: number; y: number; initialX: number; initialY: number } | null =
-      null;
-    const springs: ReturnType<typeof animate>[] = [];
-    const stop = () => {
-      springs.forEach((spring) => spring.stop());
-      springs.length = 0;
+    rootRef.current = root;
+    const state = physics.current;
+    const { hx, hy, hs, dx, dy, ps } = state;
+    const upx = viewport.height / size.height;
+    const skip = (event: PointerEvent) =>
+      Boolean((event.target as Element).closest("a, button, input, [data-landing-sheet]"));
+    const worldPoint = (event: PointerEvent) => ({
+      x: (event.clientX - size.width / 2) * upx,
+      y: -(event.clientY - size.height / 2) * upx,
+    });
+    const over = (event: PointerEvent) => {
+      const px = (hx.x + dx.x) / upx + size.width / 2;
+      const py = -(hy.x + dy.x) / upx + size.height / 2;
+      return Math.hypot(event.clientX - px, event.clientY - py) < (1.37 * hs.x) / upx;
     };
     const down = (event: PointerEvent) => {
-      if (
-        event.pointerType !== "mouse" ||
-        event.button !== 0 ||
-        !group.current ||
-        (event.target as Element).closest("a, button, input, h1, h2, p, li, [data-landing-sheet]")
-      )
-        return;
-      const x = (event.clientX / size.width - 0.5) * viewport.width;
-      const y = (0.5 - event.clientY / size.height) * viewport.height;
-      if (
-        Math.hypot(x - group.current.position.x, y - group.current.position.y) >
-        1.3 * group.current.scale.x
-      )
-        return;
-      stop();
-      drag = {
-        id: event.pointerId,
-        x: event.clientX,
-        y: event.clientY,
-        initialX: dragX.get(),
-        initialY: dragY.get(),
-      };
+      if (state.pointerId !== null || event.button !== 0 || skip(event) || !over(event)) return;
+      state.pointerId = event.pointerId;
+      const p = worldPoint(event);
+      state.off = { x: hx.x + dx.x - p.x, y: hy.x + dy.x - p.y };
+      dx.v = dy.v = 0;
+      state.hist = [];
+      ps.t = 0.96;
+      root.dataset.orbGrabbing = "";
       root.setPointerCapture(event.pointerId);
-      event.preventDefault();
+      if (event.pointerType === "mouse") event.preventDefault();
     };
     const move = (event: PointerEvent) => {
-      if (!drag || event.pointerId !== drag.id) return;
-      dragX.set(drag.initialX + ((event.clientX - drag.x) * viewport.width) / size.width);
-      dragY.set(drag.initialY - ((event.clientY - drag.y) * viewport.height) / size.height);
+      pointer.current = { x: event.clientX, y: event.clientY, blocked: skip(event) };
+      if (state.pointerId === null) {
+        root.style.cursor = !skip(event) && over(event) ? "grab" : "";
+        return;
+      }
+      if (event.pointerId !== state.pointerId) return;
+      const p = worldPoint(event);
+      const nx = rubberBand(p.x + state.off.x - hx.x);
+      const ny = rubberBand(p.y + state.off.y - hy.x);
+      state.spin.y += (nx - dx.x) * 6;
+      state.spin.x -= (ny - dy.x) * 6;
+      dx.x = nx;
+      dy.x = ny;
+      state.hist.push({ x: nx, y: ny, t: performance.now() });
+      if (state.hist.length > 8) state.hist.shift();
     };
-    const up = (event: PointerEvent) => {
-      if (!drag || event.pointerId !== drag.id) return;
-      drag = null;
-      if (root.hasPointerCapture(event.pointerId)) root.releasePointerCapture(event.pointerId);
-      for (const value of [dragX, dragY])
-        springs.push(
-          animate(value, 0, {
-            type: "spring",
-            stiffness: 140,
-            damping: 19,
-            velocity: value.getVelocity(),
-          }),
-        );
+    const up = (event?: PointerEvent) => {
+      if (state.pointerId === null || (event && event.pointerId !== state.pointerId)) return;
+      const id = state.pointerId;
+      state.pointerId = null;
+      ps.t = 1;
+      delete root.dataset.orbGrabbing;
+      const a = state.hist[0],
+        b = state.hist[state.hist.length - 1];
+      if (a && b && b.t > a.t && performance.now() - b.t < 80) {
+        const d = (b.t - a.t) / 1000;
+        dx.v = (b.x - a.x) / d;
+        dy.v = (b.y - a.y) / d;
+      }
+      dx.t = dy.t = 0;
+      state.dz = 0.8;
+      if (root.hasPointerCapture(id)) root.releasePointerCapture(id);
+    };
+    const leave = () => {
+      pointer.current = null;
+      root.style.cursor = "";
+    };
+    const blur = () => {
+      up();
+      leave();
     };
     root.addEventListener("pointerdown", down);
     root.addEventListener("pointermove", move);
     root.addEventListener("pointerup", up);
     root.addEventListener("pointercancel", up);
     root.addEventListener("lostpointercapture", up);
+    root.addEventListener("pointerleave", leave);
+    window.addEventListener("blur", blur);
     return () => {
       root.removeEventListener("pointerdown", down);
       root.removeEventListener("pointermove", move);
       root.removeEventListener("pointerup", up);
       root.removeEventListener("pointercancel", up);
       root.removeEventListener("lostpointercapture", up);
-      if (drag && root.hasPointerCapture(drag.id)) root.releasePointerCapture(drag.id);
-      stop();
+      root.removeEventListener("pointerleave", leave);
+      window.removeEventListener("blur", blur);
+      if (state.pointerId !== null && root.hasPointerCapture(state.pointerId))
+        root.releasePointerCapture(state.pointerId);
+      state.pointerId = null;
+      dx.x = dx.v = dx.t = dy.x = dy.v = dy.t = 0;
+      ps.x = ps.t = 1;
+      delete root.dataset.orbGrabbing;
+      leave();
+      rootRef.current = null;
     };
-  }, [dragX, dragY, size.width, size.height, viewport.width, viewport.height]);
+  }, [size.width, size.height, viewport.height]);
 
   useFrame((_, delta) => {
     if (!group.current || !glass.current) return;
-    time.current += Math.min(delta, 0.04);
+    const dt = Math.min(delta, 0.05);
+    time.current += dt;
     glass.current.uniforms.uT.value = time.current;
-    const mobile = size.width <= 760;
+    const mobile = size.width / size.height < 0.9;
     const poses = mobile
       ? [
           [0, 0.45, 0.85],
@@ -177,21 +220,61 @@ function Orb({ onReady, onLost }: { onReady: () => void; onLost: () => void }) {
     const to = poses[Math.min(index + 1, poses.length - 1)];
     const x = from[0] + (to[0] - from[0]) * blend;
     const y = from[1] + (to[1] - from[1]) * blend;
-    const scale = from[2] + (to[2] - from[2]) * blend;
-    group.current.position.set(
-      (x * viewport.width) / 2 + dragX.get(),
-      (y * viewport.height) / 2 + dragY.get(),
-      0,
+    const state = physics.current;
+    const { hx, hy, hs, dx, dy, ps, spin } = state;
+    hx.t = (x * viewport.width) / 2;
+    hy.t = (y * viewport.height) / 2;
+    hs.t = from[2] + (to[2] - from[2]) * blend;
+    if (!ready.current) {
+      hx.x = hx.t;
+      hy.x = hy.t;
+      hs.x = hs.t;
+    }
+    // Original integrator; home response is slightly slower than the HTML's .5s.
+    stepSpring(hx, dt, 0.6, 1);
+    stepSpring(hy, dt, 0.6, 1);
+    stepSpring(hs, dt, 0.6, 1);
+    stepSpring(ps, dt, 0.25, 1);
+    if (state.pointerId === null) {
+      stepSpring(dx, dt, 0.5, state.dz);
+      stepSpring(dy, dt, 0.5, state.dz);
+    }
+    const X = hx.x + dx.x,
+      Y = hy.x + dy.x,
+      scale = hs.x * ps.x;
+    group.current.position.set(X, Y, 0);
+    group.current.scale.set(
+      scale * (1 + Math.min(Math.abs(hx.v + dx.v) * 0.03, 0.14)),
+      scale * (1 + Math.min(Math.abs(hy.v + dy.v) * 0.03, 0.14)),
+      scale,
     );
-    group.current.scale.setScalar(scale);
-    group.current.rotation.set(Math.sin(time.current * 0.16) * 0.09, time.current * 0.1, 0);
+    group.current.rotation.y += (0.06 + spin.y) * dt;
+    group.current.rotation.x += spin.x * dt;
+    const decay = Math.exp(-dt * 1.8);
+    spin.x *= decay;
+    spin.y *= decay;
+    if (shade.current) {
+      shade.current.position.set(X, Y - 1.9 * scale, -0.4);
+      shade.current.scale.set(4.2 * scale, 0.9 * scale, 1);
+    }
+    const root = rootRef.current,
+      p = pointer.current;
+    if (root && p && state.pointerId === null) {
+      const upx = viewport.height / size.height;
+      const hovering =
+        !p.blocked &&
+        Math.hypot(p.x - (X / upx + size.width / 2), p.y - (-Y / upx + size.height / 2)) <
+          (1.37 * hs.x) / upx;
+      const cursor = hovering ? "grab" : "";
+      if (root.style.cursor !== cursor) root.style.cursor = cursor;
+    }
     if (pebbles.current) {
       pebbles.current.position.set(
         group.current.position.x * 0.7,
         group.current.position.y * 0.7,
         0,
       );
-      pebbles.current.scale.setScalar(scale);
+      pebbles.current.scale.setScalar(hs.x);
       pebbles.current.children.forEach((pebble, i) => {
         const angle = i * 2.4 + time.current * (0.03 + i * 0.006);
         pebble.position.set(
@@ -210,16 +293,16 @@ function Orb({ onReady, onLost }: { onReady: () => void; onLost: () => void }) {
 
   return (
     <>
+      <mesh ref={shade}>
+        <planeGeometry args={[1, 1]} />
+        <shaderMaterial
+          transparent
+          depthWrite={false}
+          vertexShader="varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }"
+          fragmentShader="varying vec2 vUv; void main(){float a=1.-smoothstep(0.,.5,length(vUv-.5));gl_FragColor=vec4(.12,.4,.32,a*.17);}"
+        />
+      </mesh>
       <group ref={group}>
-        <mesh position={[0, -1.75, -1]}>
-          <planeGeometry args={[4.2, 0.9]} />
-          <shaderMaterial
-            transparent
-            depthWrite={false}
-            vertexShader="varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }"
-            fragmentShader="varying vec2 vUv; void main(){float a=1.-smoothstep(0.,.5,length(vUv-.5));gl_FragColor=vec4(.12,.4,.32,a*.17);}"
-          />
-        </mesh>
         <mesh>
           <icosahedronGeometry args={[1.3, 5]} />
           <shaderMaterial

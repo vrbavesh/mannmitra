@@ -305,7 +305,7 @@
       {
         "name": "day-feedback",
         "value": "140ms",
-        "purpose": "Fine-pointer landing day lift."
+        "purpose": "Mouse-proximity lift of a day and its neighbours, using the source HTML's 90px falloff; static for reduced motion."
       },
       {
         "name": "section-reveal",

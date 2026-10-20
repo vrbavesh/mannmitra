@@ -24,6 +24,11 @@
   background: #addfd0;
   color: var(--ink);
 }
+.landing[data-orb-grabbing],
+.landing[data-orb-grabbing] * {
+  cursor: grabbing !important;
+  user-select: none;
+}
 .landing a:focus-visible,
 .strip:focus-visible {
   outline: 2px solid var(--mint);
@@ -355,9 +360,6 @@
 @media (hover: hover) and (pointer: fine) {
   .button:hover {
     transform: translateY(-2px);
-  }
-  .day:hover {
-    transform: translateY(-8px) scale(1.12);
   }
 }
 @media (max-width: 760px) {

@@ -5,7 +5,7 @@
 
 ## Where we are
 
-**Wave B COMPLETE — Step 8 implements the user's Fluid Glass landing design. Final verification passed: lint, typecheck, production build, 176 unit/contract tests and 8 browser checks. Lighthouse mobile LCP 2.34s, accessibility 100, best practices 100, CLS 0. Ponytail review and Wave B audit completed; independent visual reviewer cleared the companion corrections. Step 9 (onboarding) is next. Changes committed locally; nothing pushed.**
+**Wave B COMPLETE — Step 8's interaction correction ports the supplied HTML's spring, grab/release and neighbouring-day hover code. Home movement is slightly slower and smoother; grab/grabbing cursors are restored. Final verification: lint, typecheck, production build, 182 unit/contract tests and 9 browser checks. Ponytail correction review: Ship. Earlier Lighthouse: LCP 2.34s, accessibility/best practices 100, CLS 0 (not rerun for the interaction correction). Step 9 (onboarding) is next. Local commits only; nothing pushed.**
 
 ## Done
 
@@ -19,7 +19,7 @@
 | 5 Email sign-up + OTP verification                        | `fef4f01` (+close-out)        | Hosted custom SMTP + `{{ .Token }}` template + 120s expiry + 6-digit OTP configured; live loop signup → OTP request → verify → `/onboarding` with `email_confirmed_at` set; `npm run verify` green (128 tests); `/ponytail-review`: ship after adding rate-limit + fail-open tests        |
 | 6 Sign-in + password/username recovery                    | `99ea3f7` (+close-out)        | Email + username sign-in, recovery scope, password replacement, username reveal, and 10/10-minute rate limit live-verified; both OTP templates confirmed; `npm run verify` green (151 tests); `/ponytail-review`: ship after equalizing username lookup timing                            |
 | 7 Google sign-in + same-email enforcement                 | `663ac50` (+closeout)         | Real `google:enabled` matrix passed for collision/new/returning cases; fixtures removed; review fixed old cookie cleanup; final verify green (173 unit/contract tests, 3 production browser checks).                                                                                      |
-| 8 Fluid Glass landing + motion + Wave B audit | Closing Step 8 commit | Final verify: 176 unit/contract tests, 8 browser checks; Lighthouse LCP 2.34s, accessibility/best practices 100, CLS 0; Ponytail review/audit completed; visual corrections cleared. |
+| 8 Fluid Glass landing + motion + Wave B audit | `832847e` (+interaction correction) | Final verify after source-physics correction: 182 unit/contract tests, 9 browser checks; Ponytail review: Ship. Earlier Lighthouse LCP 2.34s, accessibility/best practices 100, CLS 0. |
 
 ## Live verification evidence (Step 5)
 
@@ -36,7 +36,7 @@ Server logs confirmed both request-route 200s and the verify 200; no `[otp]` or 
 
 ## In flight
 
-Nothing. Step 8 is closed. See `docs/verification/step8-fluid-glass.md`, its desktop/mobile/fallback screenshots, and `plans/audits/wave-b-ponytail-audit.md`. The supplied HTML is preserved as the design reference. Step 7 and Wave A remain closed.
+Nothing. Step 8's user-reported interaction mismatch is fixed through a direct port of the HTML's spring/gesture/proximity formulas. See the correction section in `docs/verification/step8-fluid-glass.md` and `step8-day-hover-correction.png`. The refreshed preview is running at `http://localhost:3100/`. The supplied HTML is unchanged. Step 7, Wave A and the Wave B audit remain closed.
 
 ## Live verification evidence (Step 6)
 

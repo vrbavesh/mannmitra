@@ -12,7 +12,7 @@ Mode: Persuade. Audience: young-adult Indian users exploring mental wellbeing sc
 
 **FIRST VIEWPORT:** Fixed brand and two account links; large left-aligned headline and short supporting copy; primary pill and secondary text link. Floating glass orb occupies the right half on desktop and upper third on mobile. No scroll interception.
 
-**FORM:** User-selected source HTML, no random seed or generated comp. Preserve its composition and signature interaction: scroll-choreographed orb, mouse drag with spring return, light practice-day hover feedback.
+**FORM:** User-selected source HTML, no random seed or generated comp. Port its interaction code: spring-smoothed orb position/scale, grab/grabbing cursors, press compression, rubber-band drag, release velocity and spin, and proximity lift across neighbouring days. Use a slightly slower 0.6s home response instead of the source's 0.5s, as requested in the user's interaction correction.
 
 **FINISH:** unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
 
